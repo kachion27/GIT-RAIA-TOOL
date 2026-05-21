@@ -161,7 +161,7 @@ if (btnCloseBanner && supportBanner) {
 }
 
 // Typewriter effect
-const twTexts = ["Donate dự án nếu thấy hay và hữu ích","Viettinbank: 0983798171","Nhà chung sinh viên PTIT x Rikkei","Click me ❤️"];
+const twTexts = ["Donate dự án nếu thấy hay và hữu ích","Nhà chung sinh viên PTIT x Rikkei","Click me to QR donate ❤️"];
 const twElement = document.getElementById('typewriter');
 let twIndex = 0;
 let twTextIndex = 0;
