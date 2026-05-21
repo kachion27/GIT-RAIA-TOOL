@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Git Upload - 27NetTeam RAIA</title>
+    <link rel="shortcut icon" href="./img/icon.ico" type="image/x-icon">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Be+Vietnam+Pro:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <!-- Cursor Glow -->
+    <div id="cursor-glow" aria-hidden="true"></div>
+    <canvas id="particles-canvas" aria-hidden="true"></canvas>
+
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header reveal">
+            <div class="logo">
+                <div class="logo-icon">
+                    <img src="./img/icon.png" alt="27 NetTeam Logo"
+                        style="width: 100%; height: 100%; object-fit: contain; border-radius: 25%;">
+                </div>
+                <div>
+                    <h1 class="logo-text">27NetTeam X RAIA RIKKEI</h1>
+                    <p class="logo-subtext">Git Upload - Tự động hóa quy trình đẩy bài tập lên GitHub</p>
+                </div>
+            </div>
+            <button class="btn btn--ghost" id="btn-account">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"
+                    style="margin-right: 8px;">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                Tài khoản
+            </button>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Section: GitHub Config -->
+            <section id="config-section" class="glass-card section-card collapsed">
+                <div class="section-header">
+                    <h2 class="section-title text-glow">CẤU HÌNH TÀI KHOẢN GITHUB</h2>
+                    <span class="section-note">(Thông tin lưu cục bộ dưới LS)</span>
+                </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Username</label>
+                        <input type="text" id="github-username" class="form-input" placeholder="Nhập username GitHub">
+                    </div>
+                    <div class="form-group">
+                        <label>Personal Access Token (PAT)</label>
+                        <input type="password" id="github-pat" class="form-input"
+                            placeholder="••••••••••••••••••••••••••••••••••••••••">
+                        <div class="input-hint">
+                            <a href="https://github.com/settings/tokens/new" target="_blank" class="link-glow">🔑lấy
+                                token</a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section: Source Folder -->
+            <section class="section-card reveal delay-2">
+                <div class="form-group">
+                    <label class="text-glow">Thư mục nguồn (Project của bạn)</label>
+                    <div class="folder-input-group">
+                        <input type="text" id="folder-display" class="form-input" readonly
+                            placeholder="Chưa chọn thư mục nào">
+                        <button class="btn btn--primary" id="btn-open-folder-modal">
+                            Chọn thư mục
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section: Repo Config -->
+            <section class="section-card reveal delay-3">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="text-glow">Tiền tố Repo (Để trống tự động lấy tên Folder)</label>
+                        <input type="text" id="repo-prefix" class="form-input" placeholder="VD: Dự Án Mới">
+                    </div>
+                    <div class="form-group form-group--toggle">
+                        <label class="text-glow">Chế độ Riêng tư (Private)</label>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="repo-private">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- Action Button -->
+            <div class="action-container reveal delay-5">
+                <button class="btn btn--glow btn--large" id="btn-start">
+                    🌸 Bắt đầu tạo & Đẩy code lên GitHub
+                </button>
+            </div>
+
+            <!-- Section: Results -->
+            <section class="glass-card section-card result-section reveal delay-6 hidden" id="result-section">
+                <div class="section-header">
+                    <h2 class="section-title text-glow">✨ ĐÃ TẠO REPOSITORY</h2>
+                </div>
+                <div class="result-box">
+                    <textarea id="result-links" class="form-input textarea-code" readonly rows="5"></textarea>
+                    <button class="btn btn--ghost btn--copy" id="btn-copy">Sao chép</button>
+                </div>
+            </section>
+
+            <!-- Section: Logs -->
+            <section class="section-card log-section reveal delay-7">
+                <div class="section-header">
+                    <h2 class="section-title text-glow">TIẾN TRÌNH THỰC HIỆN</h2>
+                    <span class="status-badge" id="process-status">Chờ đợi</span>
+                </div>
+                <div class="terminal-box" id="terminal-log">
+                    <div class="log-line system">Khởi tạo hệ thống Git Upload...</div>
+                    <div class="log-line system">Sẵn sàng nhận lệnh.</div>
+                </div>
+            </section>
+
+            <!-- Section: Author -->
+            <section class="glass-card section-card reveal delay-8">
+                <div class="section-header" style="margin-bottom: 2rem;">
+                    <h1 class="section-title text-glow">GIỚI THIỆU TÁC GIẢ</h1>
+                </div>
+                <div class="author-profile">
+                    <img src="./img/ava.png" alt="Nguyễn Như Hải Đăng" class="author-avatar">
+                    <div class="author-info">
+                        <h2 class="section-title text-glow">Nguyễn Như Hải Đăng - 27NetTeam (X-team RIKKEI)</h2>
+                        <p class="author-desc">Sinh viên lớp HN-KS25-CNTT5. Đam mê xây dựng các sản phẩm công nghệ tương
+                            lai, tự động hóa và tích hợp AI. Vì quá đau đầu về việc nhà trường bắt tạo từng link repo
+                            riêng và hiểu cảm giác cay đắng của mọi người, nên Đăng đã làm ra bản web cho mọi người</p>
+                        <div class="author-links">
+                            <a href="https://27netteam.id.vn/" target="_blank" class="btn btn--ghost btn--small">Website
+                                cá nhân</a>
+                            <a href="https://www.larksuite.com/invitation/page/add_contact/?token=999h931d-f81a-4dfa-b300-21dca6nis45u&amp;unique_id=bN0HgA4lJAvOZaOw7yXYzQ=="
+                                target="_blank" class="btn btn--ghost btn--small">Larksuite</a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Folder Selection Modal -->
+    <div id="folder-modal" class="popup-overlay hidden">
+        <div class="popup-content glass-card folder-modal-content">
+            <button class="close-modal-btn" id="close-folder-modal">&times;</button>
+            <h3 class="popup-title text-glow">Tải thư mục lên</h3>
+            
+            <div id="drop-zone" class="drop-zone relative-box">
+                <!-- Invisible file input covering the entire drop zone -->
+                <input type="file" id="folder-input" webkitdirectory directory multiple class="invisible-file-input" title="">
+                
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="drop-icon">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                <p>Kéo và thả thư mục vào đây<br>hoặc click để chọn</p>
+                <button class="btn btn--primary btn--small" style="pointer-events: none;">Duyệt thư mục</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Popup Modal -->
+    <div id="custom-popup" class="popup-overlay hidden">
+        <div class="popup-content glass-card">
+            <h3 class="popup-title text-glow">Thông báo</h3>
+            <p id="popup-message" class="popup-message"></p>
+            <button id="popup-close" class="btn btn--primary btn--small">Đóng</button>
+        </div>
+    </div>
+
+    <!-- Donation / Support Banner -->
+    <div id="support-banner" class="support-banner">
+        <button id="close-banner" class="close-banner-btn">&times;</button>
+        <a href="https://qr.sepay.vn/img?bank=VietinBank&acc=0983798171&template=qronly&amount=&des=%E1%BB%A7ng+h%E1%BB%99+d%E1%BB%B1+%C3%A1n"
+            target="_blank" class="support-link">
+            <img src="./img/tbt.png" alt="Ủng hộ dự án">
+            <div class="tw-pill">
+                <span id="typewriter"></span><span class="tw-cursor">|</span>
+            </div>
+        </a>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
