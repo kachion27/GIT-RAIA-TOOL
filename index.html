@@ -4,26 +4,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
+
     <!-- Primary Meta Tags -->
-    <title>Git Upload - Công cụ đẩy code tự động | 27NetTeam X RAIA RIKKEI</title>
-    <meta name="title" content="Git Upload - Công cụ đẩy code tự động | 27NetTeam X RAIA RIKKEI">
-    <meta name="description" content="Công cụ Git Upload tự động hóa quy trình đẩy bài tập và code lên GitHub cực kỳ nhanh chóng, dành riêng cho sinh viên RIKKEI.">
+    <title>Git Upload - Công cụ đẩy bài tập, code tự động | 27NetTeam X RAIA RIKKEI</title>
+    <meta name="title" content="Git Upload - Công cụ đẩy bài tập, code tự động | 27NetTeam X RAIA RIKKEI">
+    <meta name="description"
+        content="Công cụ Git Upload tự động hóa quy trình đẩy bài tập và code lên GitHub cực kỳ nhanh chóng, dành riêng cho sinh viên PTIT x RIKKEI.">
     <meta name="keywords" content="Git, GitHub, Git Upload, 27NetTeam, RAIA, RIKKEI, upload code, tool đẩy code">
     <meta name="author" content="Nguyễn Như Hải Đăng - 27NetTeam">
 
     <!-- Open Graph / Facebook / Zalo -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://27netteam.top/">
-    <meta property="og:title" content="Git Upload - Tự động đẩy code lên GitHub | 27NetTeam">
-    <meta property="og:description" content="Công cụ giúp tự động hóa quy trình đẩy bài tập lên GitHub nhanh gọn chỉ với 1 click. Không cần cài đặt lệnh Git phức tạp!">
+    <meta property="og:title" content="Git Upload - Tự động đẩy bài tập, code lên GitHub | 27NetTeam">
+    <meta property="og:description"
+        content="Công cụ giúp tự động hóa quy trình đẩy bài tập lên GitHub nhanh gọn chỉ với 1 click. Không cần cài đặt lệnh Git phức tạp!">
     <meta property="og:image" content="https://27netteam.top/img/icon.png">
 
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image">
     <meta property="twitter:url" content="https://27netteam.top/">
-    <meta property="twitter:title" content="Git Upload - Tự động đẩy code lên GitHub | 27NetTeam">
-    <meta property="twitter:description" content="Công cụ giúp tự động hóa quy trình đẩy bài tập lên GitHub nhanh gọn chỉ với 1 click.">
+    <meta property="twitter:title" content="Git Upload - Tự động đẩy code bài tập lên GitHub | 27NetTeam">
+    <meta property="twitter:description"
+        content="Công cụ giúp tự động hóa quy trình đẩy bài tập lên GitHub nhanh gọn chỉ với 1 click.">
     <meta property="twitter:image" content="https://27netteam.top/img/icon.png">
 
     <link rel="shortcut icon" href="./img/icon.ico" type="image/x-icon">
@@ -33,7 +36,7 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Be+Vietnam+Pro:wght@300;400;500;600;700&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=2.0">
+    <link rel="stylesheet" href="style.css?v=CSS-V2.0">
 </head>
 
 <body>
@@ -120,6 +123,27 @@
                 </div>
             </section>
 
+            <!-- File List Container (Standalone Section) -->
+            <section id="file-list-container" class="section-card hidden reveal delay-3" style="margin-bottom: 2rem;">
+                <div class="section-header">
+                    <h2 class="section-title text-glow">Danh sách File & Tên Repo sẽ tạo</h2>
+                </div>
+                <div class="table-container">
+                    <table class="file-table">
+                        <thead>
+                            <tr>
+                                <th>Tên File gốc</th>
+                                <th style="width: 30%;">Tên Hậu tố</th>
+                                <th style="text-align: right;">Tên Repo sẽ tạo (Preview)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="file-list-items">
+                            <!-- Dynamic items will be injected here -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
 
             <!-- Action Button -->
             <div class="action-container reveal delay-5">
@@ -143,7 +167,7 @@
             <section class="section-card log-section reveal delay-7">
                 <div class="section-header">
                     <h2 class="section-title text-glow">TIẾN TRÌNH THỰC HIỆN</h2>
-                    <span class="status-badge" id="process-status">Chờ đợi</span>
+                    <span class="status-badge" id="process-status">Chờ đợi - Sẵn sàng</span>
                 </div>
                 <div class="terminal-box" id="terminal-log">
                     <div class="log-line system">Khởi tạo hệ thống Git Upload...</div>
@@ -156,8 +180,13 @@
                 <div class="section-header" style="margin-bottom: 2rem; text-align: center;">
                     <h2 class="section-title text-glow">HƯỚNG DẪN SỬ DỤNG</h2>
                 </div>
-                <div class="video-container" style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 12px; border: 1px solid var(--purple); box-shadow: 0 0 20px rgba(168, 85, 247, 0.2);">
-                    <iframe style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" src="https://www.youtube.com/embed/dSyeAAK6bxc?si=iqfxWZYmyuwybU2c" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+                <div class="video-container"
+                    style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 12px; border: 1px solid var(--purple); box-shadow: 0 0 20px rgba(168, 85, 247, 0.2);">
+                    <iframe style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"
+                        src="https://www.youtube.com/embed/5NfKkw8-Eyw?si=7RLTGCpaqVJ55fGI" title="YouTube video player"
+                        frameborder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
                 </div>
             </section>
 
@@ -182,6 +211,8 @@
                     </div>
                 </div>
             </section>
+            
+            <div id="app-version" class="reveal delay-8" style="text-align: center; color: var(--text-muted); font-size: 0.8rem; margin-top: 2rem; padding-bottom: 1rem;"></div>
         </main>
     </div>
 
@@ -190,11 +221,12 @@
         <div class="popup-content glass-card folder-modal-content">
             <button class="close-modal-btn" id="close-folder-modal">&times;</button>
             <h3 class="popup-title text-glow">Tải thư mục lên</h3>
-            
+
             <div id="drop-zone" class="drop-zone relative-box">
                 <!-- Invisible file input covering the entire drop zone -->
-                <input type="file" id="folder-input" webkitdirectory directory multiple class="invisible-file-input" title="">
-                
+                <input type="file" id="folder-input" webkitdirectory directory multiple class="invisible-file-input"
+                    title="">
+
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="drop-icon">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                     <polyline points="17 8 12 3 7 8"></polyline>
@@ -218,8 +250,8 @@
     <!-- Donation / Support Banner -->
     <div id="support-banner" class="support-banner">
         <button id="close-banner" class="close-banner-btn">&times;</button>
-        <a href="https://qr.sepay.vn/img?bank=VietinBank&acc=0983798171&template=qronly&amount=&des=%E1%BB%A7ng+h%E1%BB%99+d%E1%BB%B1+%C3%A1n"
-            target="_blank" class="support-link">
+        <a href="./donate.html"
+            class="support-link">
             <img src="./img/tbt.png" alt="Ủng hộ dự án">
             <div class="tw-pill">
                 <span id="typewriter"></span><span class="tw-cursor">|</span>
@@ -227,7 +259,7 @@
         </a>
     </div>
 
-    <script src="script.js?v=2.1"></script>
+    <script src="script.js?v=JS-V2.0"></script>
 </body>
 
 </html>

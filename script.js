@@ -83,6 +83,10 @@ const resultSection = document.getElementById('result-section');
 const resultLinks = document.getElementById('result-links');
 const btnCopy = document.getElementById('btn-copy');
 
+const fileListContainer = document.getElementById('file-list-container');
+const fileListItems = document.getElementById('file-list-items');
+let currentFilesData = []; // State array to store file info
+
 // Toggle Config Section
 btnAccount.addEventListener('click', () => {
     configSection.classList.toggle('collapsed');
@@ -126,14 +130,128 @@ folderInput.addEventListener('drop', () => {
     dropZone.classList.remove('dragover');
 });
 
+function removeVietnameseTones(str) {
+    return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D');
+}
+
+function updatePreviews() {
+    let prefix = repoPrefixInput.value.trim();
+    let nameCounts = {};
+    
+    for (let i = 0; i < currentFilesData.length; i++) {
+        let data = currentFilesData[i];
+        
+        // Logic: Prefix + customBaseName
+        let nameParts = [];
+        if (prefix) nameParts.push(prefix);
+        
+        let baseNameToUse = data.customBaseName || data.originalBaseName;
+        if (baseNameToUse) nameParts.push(baseNameToUse);
+        
+        let finalName = nameParts.join('_');
+        
+        // Sanitize: loại bỏ dấu tiếng việt và thay khoảng trắng bằng dấu gạch dưới
+        finalName = removeVietnameseTones(finalName);
+        finalName = finalName.replace(/\s+/g, '_'); 
+        
+        data.finalRepoName = finalName; // Save to state for upload
+        
+        if (nameCounts[finalName]) {
+            nameCounts[finalName]++;
+        } else {
+            nameCounts[finalName] = 1;
+        }
+    }
+    
+    // Render
+    for (let i = 0; i < currentFilesData.length; i++) {
+        let finalName = currentFilesData[i].finalRepoName;
+        let previewEl = document.getElementById(`preview-${i}`);
+        
+        if (nameCounts[finalName] > 1) {
+            previewEl.innerText = finalName + " (TRÙNG)";
+            previewEl.style.color = "#ff3333";
+            previewEl.style.textShadow = "0 0 8px #ff3333";
+        } else {
+            previewEl.innerText = finalName;
+            previewEl.style.color = "var(--neon-pink)";
+            previewEl.style.textShadow = "0 0 5px rgba(255, 42, 109, 0.5)";
+        }
+    }
+}
+
+// Listen to global prefix changes to update all previews
+repoPrefixInput.addEventListener('input', (e) => {
+    let start = e.target.selectionStart;
+    let end = e.target.selectionEnd;
+    e.target.value = removeVietnameseTones(e.target.value);
+    e.target.setSelectionRange(start, end);
+    updatePreviews();
+});
+
 folderInput.addEventListener('change', (e) => {
     if (e.target.files.length > 0) {
         const firstFile = e.target.files[0];
         const folderName = firstFile.webkitRelativePath.split('/')[0];
         folderDisplay.value = `${folderName} (${e.target.files.length} files)`;
         folderModal.classList.add('hidden'); // Auto close modal after selection
+        
+        // Render File List
+        currentFilesData = [];
+        fileListItems.innerHTML = '';
+        fileListContainer.classList.remove('hidden');
+        
+        for (let i = 0; i < e.target.files.length; i++) {
+            const file = e.target.files[i];
+            let fileNameFull = file.name;
+            let fileNameWithoutExt = fileNameFull.substring(0, fileNameFull.lastIndexOf('.')) || fileNameFull;
+            
+            // Create data object
+            let cleanBaseName = removeVietnameseTones(fileNameWithoutExt);
+            currentFilesData.push({
+                file: file,
+                index: i,
+                originalBaseName: cleanBaseName,
+                customBaseName: cleanBaseName
+            });
+            
+            // Create DOM element (Table Row)
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="file-item-name" title="${fileNameFull}">${fileNameFull}</td>
+                <td class="file-item-suffix">
+                    <input type="text" id="basename-${i}" value="${cleanBaseName}">
+                </td>
+                <td class="file-item-preview" id="preview-${i}"></td>
+            `;
+            fileListItems.appendChild(tr);
+            
+            // Add listener to individual basename input
+            const basenameInput = document.getElementById(`basename-${i}`);
+            basenameInput.addEventListener('input', (event) => {
+                let start = event.target.selectionStart;
+                let end = event.target.selectionEnd;
+                event.target.value = removeVietnameseTones(event.target.value);
+                event.target.setSelectionRange(start, end);
+                currentFilesData[i].customBaseName = event.target.value.trim();
+                updatePreviews();
+            });
+            
+            // Revert to original if left empty when user clicks away
+            basenameInput.addEventListener('blur', (event) => {
+                if (event.target.value.trim() === '') {
+                    event.target.value = currentFilesData[i].originalBaseName;
+                    currentFilesData[i].customBaseName = currentFilesData[i].originalBaseName;
+                    updatePreviews();
+                }
+            });
+        }
+        updatePreviews(); // Initial preview calculation
+        
     } else {
         folderDisplay.value = "";
+        fileListContainer.classList.add('hidden');
+        currentFilesData = [];
     }
 });
 
@@ -161,7 +279,7 @@ if (btnCloseBanner && supportBanner) {
 }
 
 // Typewriter effect
-const twTexts = ["Donate dự án nếu thấy hay và hữu ích","Nhà chung sinh viên PTIT x Rikkei","Click me to QR donate ❤️","V2.0"];
+const twTexts = ["Donate dự án nếu thấy hay và hữu ích","Nhà chung sinh viên PTIT x Rikkei","Click me to donate ❤️"];
 const twElement = document.getElementById('typewriter');
 let twIndex = 0;
 let twTextIndex = 0;
@@ -273,6 +391,14 @@ btnStart.addEventListener('click', async () => {
         showPopup("Vui lòng chọn thư mục nguồn.");
         return;
     }
+    
+    // Check for duplicates
+    let names = currentFilesData.map(d => d.finalRepoName);
+    let hasDuplicates = new Set(names).size !== names.length;
+    if (hasDuplicates) {
+        showPopup("Phát hiện tên Repository bị TRÙNG LẶP. Vui lòng sửa lại tên các file bị trùng (màu đỏ) để tránh lỗi API.");
+        return;
+    }
 
     logTerminal("--------------------------------", "info");
     logTerminal(`🚀 Bắt đầu tạo repository cho từng file (${files.length} files)`, "system");
@@ -286,16 +412,15 @@ btnStart.addEventListener('click', async () => {
     try {
         saveConfig();
 
-        for (let i = 0; i < files.length; i++) {
-            const file = files[i];
-            
-            // Format repo name based on file name
+        for (let i = 0; i < currentFilesData.length; i++) {
+            const data = currentFilesData[i];
+            const file = data.file;
             let fileNameFull = file.name;
-            let fileNameWithoutExt = fileNameFull.substring(0, fileNameFull.lastIndexOf('.')) || fileNameFull;
-            let baseRepoName = prefix ? `${prefix}-${fileNameWithoutExt}` : fileNameWithoutExt;
-            let repoName = baseRepoName.replace(/\s+/g, '-');
+            
+            // Lấy tên repo đã được preview và lưu sẵn
+            let repoName = data.finalRepoName;
 
-            logTerminal(`\n⏳ Đang xử lý file ${i+1}/${files.length}: ${fileNameFull}`, "info");
+            logTerminal(`\n⏳ Đang xử lý file ${i+1}/${currentFilesData.length}: ${fileNameFull}`, "info");
 
             // 1. Create Repository
             logTerminal(`   -> Tạo Repository: ${repoName}...`, "info");
@@ -372,3 +497,9 @@ btnStart.addEventListener('click', async () => {
         btnStart.disabled = false;
     }
 });
+
+// Version Display
+const appVersionElement = document.getElementById('app-version');
+if (appVersionElement) {
+    appVersionElement.innerText = "phiên bản : JS-V2.0";
+}

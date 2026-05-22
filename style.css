@@ -721,6 +721,78 @@ input:checked + .slider:before {
     line-height: 1.5;
 }
 
+/* File Table UI */
+.table-container {
+    max-height: 350px;
+    overflow-y: auto;
+    padding-right: 5px;
+    border-radius: 8px;
+}
+.table-container::-webkit-scrollbar {
+    width: 6px;
+}
+.table-container::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+}
+.table-container::-webkit-scrollbar-thumb {
+    background: var(--purple);
+    border-radius: 4px;
+}
+.file-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+.file-table th, .file-table td {
+    padding: 12px 15px;
+    border-bottom: 1px solid rgba(168, 85, 247, 0.2);
+}
+.file-table th {
+    color: var(--cyan);
+    font-weight: 600;
+    position: sticky;
+    top: 0;
+    background: rgba(10, 5, 20, 0.95);
+    backdrop-filter: blur(10px);
+    z-index: 1;
+}
+.file-table tbody tr {
+    transition: background 0.3s;
+}
+.file-table tbody tr:hover {
+    background: rgba(168, 85, 247, 0.05);
+}
+.file-table tbody tr:last-child td {
+    border-bottom: none;
+}
+.file-item-name {
+    font-weight: 500;
+    color: var(--text-light);
+}
+.file-item-suffix input {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    transition: all 0.3s;
+}
+.file-item-suffix input:focus {
+    border-color: var(--cyan);
+    outline: none;
+    background: rgba(0, 240, 255, 0.05);
+}
+.file-item-preview {
+    font-family: monospace;
+    color: var(--neon-pink);
+    font-size: 0.95rem;
+    text-shadow: 0 0 5px rgba(255, 42, 109, 0.5);
+    text-align: right;
+}
+
 @keyframes fadeInUp {
     to {
         opacity: 1;
