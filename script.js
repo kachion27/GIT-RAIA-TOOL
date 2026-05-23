@@ -86,10 +86,21 @@ const btnCopy = document.getElementById('btn-copy');
 const fileListContainer = document.getElementById('file-list-container');
 const fileListItems = document.getElementById('file-list-items');
 let currentFilesData = []; // State array to store file info
+let isUploading = false; // State to track upload progress
 
 // Toggle Config Section
 btnAccount.addEventListener('click', () => {
     configSection.classList.toggle('collapsed');
+});
+
+// Warn before reload if uploading
+window.addEventListener('beforeunload', (e) => {
+    if (isUploading) {
+        // Most modern browsers ignore the custom string, but it's required to trigger the dialog
+        const msg = "Quá trình upload đang diễn ra. Nếu tải lại trang, tiến trình sẽ bị hủy. Bạn có chắc chắn muốn thoát?";
+        e.returnValue = msg;
+        return msg;
+    }
 });
 
 // Load stored config
@@ -357,6 +368,11 @@ async function githubRequest(url, method = 'GET', body = null, pat) {
             const errJson = await response.json();
             if(errJson.message) errStr = errJson.message;
         } catch(e){}
+        
+        if (response.status === 401 && errStr === "Bad credentials") {
+            throw new Error("Mã Token (PAT) không đúng hoặc đã hết hạn. Vui lòng kiểm tra lại Token của bạn!");
+        }
+        
         throw new Error(`API Error ${response.status}: ${errStr}`);
     }
     return response.json();
@@ -400,6 +416,24 @@ btnStart.addEventListener('click', async () => {
         return;
     }
 
+    // Show donate ad modal first
+    const donateModal = document.getElementById('donate-ad-modal');
+    donateModal.classList.remove('hidden');
+    
+    // Wait for user to click continue
+    document.getElementById('donate-ad-continue').onclick = async () => {
+        donateModal.classList.add('hidden');
+        await startUploadProcess(username, pat, files, prefix, isPrivate);
+    };
+    
+    // Close button
+    document.getElementById('donate-ad-close').onclick = () => {
+        donateModal.classList.add('hidden');
+    };
+});
+
+async function startUploadProcess(username, pat, files, prefix, isPrivate) {
+    isUploading = true;
     logTerminal("--------------------------------", "info");
     logTerminal(`🚀 Bắt đầu tạo repository cho từng file (${files.length} files)`, "system");
     processStatus.innerText = "Đang chạy...";
@@ -494,12 +528,13 @@ btnStart.addEventListener('click', async () => {
         processStatus.innerText = "Lỗi";
         processStatus.style.color = "var(--neon-pink)";
     } finally {
+        isUploading = false;
         btnStart.disabled = false;
     }
-});
+}
 
 // Version Display
 const appVersionElement = document.getElementById('app-version');
 if (appVersionElement) {
-    appVersionElement.innerText = "phiên bản : JS-V2.0";
+    appVersionElement.innerText = "phiên bản : JS-V2.1";
 }
