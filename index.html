@@ -189,9 +189,29 @@
                         referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
                 </div>
             </section>
+            <!-- Section: Common Error Codes -->
+            <section class="glass-card section-card reveal delay-8" style="margin-top: 2rem;">
+                <div class="section-header" style="margin-bottom: 1.5rem; text-align: center;">
+                    <h2 class="section-title text-glow">CÁC MÃ LỖI DỄ BẮT GẶP</h2>
+                </div>
+                <div class="error-codes-list" style="display: flex; flex-direction: column; gap: 15px;">
+                    <div style="background: rgba(255, 42, 109, 0.1); border-left: 4px solid var(--neon-pink); padding: 15px; border-radius: 0 8px 8px 0;">
+                        <h4 style="color: var(--neon-pink); font-size: 1.2rem; margin-bottom: 5px; text-transform: uppercase;">Lỗi 401 (Bad Credentials)</h4>
+                        <p style="color: var(--text-light); font-size: 0.95rem; line-height: 1.5;">Mã Token (PAT) của bạn không đúng, đã hết hạn, hoặc bị GitHub tự động thu hồi (do lộ key public). Vui lòng vào GitHub xóa Token cũ, tạo lại một Token mới và đảm bảo đã tích chọn quyền <b>repo</b>.</p>
+                    </div>
+                    <div style="background: rgba(255, 165, 0, 0.1); border-left: 4px solid orange; padding: 15px; border-radius: 0 8px 8px 0;">
+                        <h4 style="color: orange; font-size: 1.2rem; margin-bottom: 5px; text-transform: uppercase;">Lỗi 422 (Unprocessable Entity)</h4>
+                        <p style="color: var(--text-light); font-size: 0.95rem; line-height: 1.5;">Tên Repository mà bạn đang cố tạo <b>đã tồn tại</b> trên tài khoản GitHub của bạn. Vui lòng kiểm tra lại danh sách "Tên Repo (Sẽ tạo)" và đổi các tên bị trùng thành tên khác.</p>
+                    </div>
+                    <div style="background: rgba(0, 240, 255, 0.1); border-left: 4px solid var(--cyan); padding: 15px; border-radius: 0 8px 8px 0;">
+                        <h4 style="color: var(--cyan); font-size: 1.2rem; margin-bottom: 5px; text-transform: uppercase;">Lỗi 404 (Not Found)</h4>
+                        <p style="color: var(--text-light); font-size: 0.95rem; line-height: 1.5;">Thường xảy ra khi <b>GitHub Username</b> của bạn nhập bị sai chính tả, hoặc Token của bạn không có đủ quyền để can thiệp vào kho lưu trữ (chưa cấp quyền repo).</p>
+                    </div>
+                </div>
+            </section>
 
             <!-- Section: Author -->
-            <section class="glass-card section-card reveal delay-8">
+            <section class="glass-card section-card reveal delay-8" style="margin-top: 2rem;">
                 <div class="section-header" style="margin-bottom: 2rem;">
                     <h1 class="section-title text-glow">GIỚI THIỆU TÁC GIẢ</h1>
                 </div>
