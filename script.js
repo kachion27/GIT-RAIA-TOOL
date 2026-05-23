@@ -368,11 +368,6 @@ async function githubRequest(url, method = 'GET', body = null, pat) {
             const errJson = await response.json();
             if(errJson.message) errStr = errJson.message;
         } catch(e){}
-        
-        if (response.status === 401 && errStr === "Bad credentials") {
-            throw new Error("Mã Token (PAT) không đúng hoặc đã hết hạn. Vui lòng kiểm tra lại Token của bạn!");
-        }
-        
         throw new Error(`API Error ${response.status}: ${errStr}`);
     }
     return response.json();
