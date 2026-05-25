@@ -1,0 +1,26 @@
+{
+  "name": "gitraia",
+  "version": "1.0.0",
+  "description": "<div align=\"center\">   <img src=\"./img/icon.png\" alt=\"Logo\" width=\"150\" />   <h1>🚀 Git Upload - 27NetTeam X RAIA RIKKEI</h1>   <p><b>Công cụ tự động hóa quá trình tạo Repository và đẩy Code lên GitHub chỉ với 1 Click!</b></p>",
+  "main": "google_apps_script.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kachion27/GIT-RAIA-TOOL.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/kachion27/GIT-RAIA-TOOL/issues"
+  },
+  "homepage": "https://github.com/kachion27/GIT-RAIA-TOOL#readme",
+  "devDependencies": {
+    "vite": "^8.0.14"
+  }
+}

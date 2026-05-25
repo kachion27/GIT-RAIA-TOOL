@@ -531,5 +531,5 @@ async function startUploadProcess(username, pat, files, prefix, isPrivate) {
 // Version Display
 const appVersionElement = document.getElementById('app-version');
 if (appVersionElement) {
-    appVersionElement.innerText = "phiên bản : JS-V2.1";
+    appVersionElement.innerText = "phiên bản : JS-V2.1.0 (Vite Build)";
 }

@@ -1,1 +1,8 @@
-index.html
+node_modules/
+dist/
+dist-ssr/
+*.local
+.env
+.env.*
+.env.local
+.env.*.local
