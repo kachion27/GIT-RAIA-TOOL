@@ -31,8 +31,11 @@
                 </div>
                 <h1 class="section-title text-glow" style="font-size: 5rem; margin-bottom: 10px; color: var(--neon-pink);">404</h1>
                 <h2 class="text-glow" style="font-size: 1.5rem; margin-bottom: 20px;">Trang không tồn tại</h2>
-                <p style="color: var(--text-light); margin-bottom: 30px;">
+                <p style="color: var(--text-light); margin-bottom: 20px;">
                     Có vẻ như bạn đã truy cập vào một đường dẫn không hợp lệ. Vui lòng quay lại trang chủ để tiếp tục sử dụng công cụ Git Upload.
+                </p>
+                <p style="color: var(--neon-pink); font-size: 1.1rem; margin-bottom: 30px; font-weight: 600;">
+                    Tự động chuyển về trang chủ sau <span id="countdown">10</span> giây...
                 </p>
                 <div class="action-container">
                     <a href="/" style="text-decoration: none;">
@@ -47,6 +50,18 @@
 
     <!-- Scripts for animations -->
     <script>
+        // Countdown and redirect
+        let timeLeft = 10;
+        const countdownEl = document.getElementById('countdown');
+        const timer = setInterval(() => {
+            timeLeft--;
+            if (countdownEl) countdownEl.textContent = timeLeft;
+            if (timeLeft <= 0) {
+                clearInterval(timer);
+                window.location.href = '/';
+            }
+        }, 1000);
+
         // Cursor Glow
         const cursorGlow = document.getElementById('cursor-glow');
         if (cursorGlow) {
