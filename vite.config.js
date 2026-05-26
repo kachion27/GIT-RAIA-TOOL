@@ -7,6 +7,7 @@ export default defineConfig({
       input: {
         main: resolve(__dirname, 'index.html'),
         donate: resolve(__dirname, 'donate/index.html'),
+        404: resolve(__dirname, '404.html'),
       },
     },
     // Optional: make output names hash-based for cache busting
