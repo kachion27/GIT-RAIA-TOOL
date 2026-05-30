@@ -36,7 +36,7 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Be+Vietnam+Pro:wght@300;400;500;600;700&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=CSS-V2.1">
+    <link rel="stylesheet" href="style.css?v=CSS-V3.0">
 </head>
 
 <body>
@@ -44,56 +44,72 @@
     <div id="cursor-glow" aria-hidden="true"></div>
     <canvas id="particles-canvas" aria-hidden="true"></canvas>
 
+    <!-- Global Drag & Drop Overlay -->
+    <div id="global-drop-overlay" class="global-drop-overlay hidden">
+        <div class="global-drop-content">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="drop-icon" style="width: 80px; height: 80px; margin-bottom: 20px;">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            <h2>Thả thư mục vào bất kỳ đâu để tải lên</h2>
+        </div>
+        <input type="file" id="global-folder-input" webkitdirectory directory multiple class="invisible-file-input" title="">
+    </div>
+
     <div class="app-container">
         <!-- Header -->
         <header class="header reveal">
-            <div class="logo">
-                <div class="logo-icon">
-                    <img src="./img/icon.png" alt="27 NetTeam Logo"
+            <div class="logo" id="header-logo">
+                <div class="logo-icon" id="header-avatar-container">
+                    <img id="header-avatar" src="./img/icon.png" alt="Logo"
                         style="width: 100%; height: 100%; object-fit: contain; border-radius: 25%;">
                 </div>
                 <div>
-                    <h1 class="logo-text">27NetTeam X RAIA RIKKEI</h1>
-                    <p class="logo-subtext">Git Upload - Tự động hóa quy trình đẩy bài tập lên GitHub</p>
+                    <h1 class="logo-text text-glow" id="header-title">27NetTeam X RAIA RIKKEI</h1>
+                    <p class="logo-subtext" id="header-subtitle" style="transition: all 0.3s;">Git Upload - Tự động hóa quy trình đẩy bài tập lên GitHub</p>
                 </div>
             </div>
-            <button class="btn btn--ghost" id="btn-account">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"
-                    style="margin-right: 8px;">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="12" cy="7" r="4"></circle>
-                </svg>
-                Tài khoản
-            </button>
+            
+            <!-- Weather Pill -->
+            <div class="weather-pill reveal delay-1" id="weather-pill">
+                <span class="pin">🕐</span> <span id="clock-time">--:--:--</span>
+                <span style="opacity: 0.3; margin: 0 4px;">|</span>
+                <span class="pin">📍</span> Hà Nội: <span id="weather-emoji">⛅</span> <span id="weather-temp">--°C</span>
+            </div>
         </header>
 
         <!-- Main Content -->
         <main class="main-content">
-            <!-- Section: GitHub Config -->
-            <section id="config-section" class="glass-card section-card collapsed">
-                <div class="section-header">
-                    <h2 class="section-title text-glow">CẤU HÌNH TÀI KHOẢN GITHUB</h2>
-                    <span class="section-note">(Thông tin lưu cục bộ dưới LS)</span>
-                </div>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Username</label>
-                        <input type="text" id="github-username" class="form-input" placeholder="Nhập username GitHub">
+            <!-- Section: GitHub Auth (OAuth Login) -->
+            <section class="auth-section reveal delay-2" id="auth-section">
+                <div class="auth-card" id="auth-card">
+                    <!-- Logged Out State -->
+                    <div id="auth-logged-out" class="auth-logged-out">
+                        <p>Đăng nhập GitHub để tự động cấp quyền <strong>repo</strong> — không cần tạo token thủ công!</p>
+                        <button class="btn-github-login" id="btn-github-login">
+                            <svg viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+                            Đăng nhập bằng GitHub
+                        </button>
                     </div>
-                    <div class="form-group">
-                        <label>Personal Access Token (PAT)</label>
-                        <input type="password" id="github-pat" class="form-input"
-                            placeholder="ghp_••••••••••••••••••••••••••••••••••••">
-                        <div class="input-hint">
-                            <a href="https://github.com/settings/tokens/new" target="_blank" class="link-glow">🔑lấy
-                                token</a>
+                    <!-- Logged In State -->
+                    <div id="auth-logged-in" class="auth-logged-in hidden">
+                        <img id="auth-avatar" class="auth-avatar" src="" alt="Avatar">
+                        <div class="auth-user-info">
+                            <div class="auth-username" id="auth-username">username</div>
+                            <div id="auth-greeting" style="font-size: 0.85rem; color: var(--primary-light); margin: 2px 0 5px 0;">Chào bạn! 👋</div>
                         </div>
+                        <div class="auth-scope">
+                            <span>✅</span> Quyền repo đã được cấp tự động
+                        </div>
+                        <button class="btn-logout" id="btn-logout">Đăng xuất</button>
                     </div>
                 </div>
             </section>
 
+
             <!-- Section: Source Folder -->
-            <section class="section-card reveal delay-2">
+            <section class="section-card reveal delay-3">
                 <div class="form-group">
                     <label class="text-glow">Thư mục nguồn (Project của bạn)</label>
                     <div class="folder-input-group">
@@ -123,24 +139,14 @@
                 </div>
             </section>
 
-            <!-- File List Container (Standalone Section) -->
+            <!-- File List Container (Card Layout) -->
             <section id="file-list-container" class="section-card hidden reveal delay-3" style="margin-bottom: 2rem;">
                 <div class="section-header">
-                    <h2 class="section-title text-glow">Danh sách File & Tên Repo sẽ tạo</h2>
+                    <h2 class="section-title text-glow">📁 Danh sách File & Repo</h2>
+                    <span class="section-note" id="file-count-badge"></span>
                 </div>
-                <div class="table-container">
-                    <table class="file-table">
-                        <thead>
-                            <tr>
-                                <th>Tên File gốc</th>
-                                <th style="width: 30%;">Tên Hậu tố</th>
-                                <th style="text-align: right;">Tên Repo sẽ tạo (Preview)</th>
-                            </tr>
-                        </thead>
-                        <tbody id="file-list-items">
-                            <!-- Dynamic items will be injected here -->
-                        </tbody>
-                    </table>
+                <div class="file-cards-container" id="file-list-items">
+                    <!-- Dynamic file cards will be injected here -->
                 </div>
             </section>
 
@@ -163,18 +169,6 @@
                 </div>
             </section>
 
-            <!-- Section: Logs -->
-            <section class="section-card log-section reveal delay-7">
-                <div class="section-header">
-                    <h2 class="section-title text-glow">TIẾN TRÌNH THỰC HIỆN</h2>
-                    <span class="status-badge" id="process-status">Chờ đợi - Sẵn sàng</span>
-                </div>
-                <div class="terminal-box" id="terminal-log">
-                    <div class="log-line system">Khởi tạo hệ thống Git Upload...</div>
-                    <div class="log-line system">Sẵn sàng nhận lệnh.</div>
-                </div>
-            </section>
-
             <!-- Section: Tutorial -->
             <section class="glass-card section-card reveal delay-8">
                 <div class="section-header" style="margin-bottom: 2rem; text-align: center;">
@@ -183,32 +177,13 @@
                 <div class="video-container"
                     style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 12px; border: 1px solid var(--purple); box-shadow: 0 0 20px rgba(168, 85, 247, 0.2);">
                     <iframe style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"
-                        src="https://www.youtube.com/embed/5NfKkw8-Eyw?si=qz6krQ47bxfVOxne" title="YouTube video player"
+                        src="https://www.youtube.com/embed/DAgBTMGJdvE?si=uCuPg6TfgbRMiQy4" title="YouTube video player"
                         frameborder="0"
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                         referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
                 </div>
             </section>
-            <!-- Section: Common Error Codes -->
-            <section class="glass-card section-card reveal delay-8" style="margin-top: 2rem;">
-                <div class="section-header" style="margin-bottom: 1.5rem; text-align: center;">
-                    <h2 class="section-title text-glow">CÁC MÃ LỖI DỄ BẮT GẶP</h2>
-                </div>
-                <div class="error-codes-list" style="display: flex; flex-direction: column; gap: 15px;">
-                    <div style="background: rgba(255, 42, 109, 0.1); border-left: 4px solid var(--neon-pink); padding: 15px; border-radius: 0 8px 8px 0;">
-                        <h4 style="color: var(--neon-pink); font-size: 1.2rem; margin-bottom: 5px; text-transform: uppercase;">Lỗi 401 (Bad Credentials)</h4>
-                        <p style="color: var(--text-light); font-size: 0.95rem; line-height: 1.5;">Mã Token (PAT) của bạn không đúng, đã hết hạn, hoặc bị GitHub tự động thu hồi (do lộ key public). Vui lòng vào GitHub xóa Token cũ, tạo lại một Token mới và đảm bảo đã tích chọn quyền <b>repo</b>.</p>
-                    </div>
-                    <div style="background: rgba(255, 165, 0, 0.1); border-left: 4px solid orange; padding: 15px; border-radius: 0 8px 8px 0;">
-                        <h4 style="color: orange; font-size: 1.2rem; margin-bottom: 5px; text-transform: uppercase;">Lỗi 422 (Unprocessable Entity)</h4>
-                        <p style="color: var(--text-light); font-size: 0.95rem; line-height: 1.5;">Tên Repository mà bạn đang cố tạo <b>đã tồn tại</b> trên tài khoản GitHub của bạn. Vui lòng kiểm tra lại danh sách "Tên Repo (Sẽ tạo)" và đổi các tên bị trùng thành tên khác.</p>
-                    </div>
-                    <div style="background: rgba(0, 240, 255, 0.1); border-left: 4px solid var(--cyan); padding: 15px; border-radius: 0 8px 8px 0;">
-                        <h4 style="color: var(--cyan); font-size: 1.2rem; margin-bottom: 5px; text-transform: uppercase;">Lỗi 404 (Not Found)</h4>
-                        <p style="color: var(--text-light); font-size: 0.95rem; line-height: 1.5;">Thường xảy ra khi <b>GitHub Username</b> của bạn nhập bị sai chính tả, hoặc Token của bạn không có đủ quyền để can thiệp vào kho lưu trữ (chưa cấp quyền repo).</p>
-                    </div>
-                </div>
-            </section>
+
             <!-- Section: Windows Version -->
             <section class="glass-card section-card reveal delay-8" style="margin-top: 2rem; text-align: center;">
                 <div class="section-header" style="margin-bottom: 1.5rem;">
@@ -230,7 +205,7 @@
             <!-- Section: Author -->
             <section class="glass-card section-card reveal delay-8" style="margin-top: 2rem;">
                 <div class="section-header" style="margin-bottom: 2rem;">
-                    <h1 class="section-title text-glow">GIỚI THIỆU TÁC GIẢ</h1>
+                    <h2 class="section-title text-glow">GIỚI THIỆU TÁC GIẢ</h2>
                 </div>
                 <div class="author-profile">
                     <img src="./img/ava.png" alt="Nguyễn Như Hải Đăng" class="author-avatar">
@@ -288,6 +263,34 @@
             <h3 class="popup-title text-glow">Thông báo</h3>
             <p id="popup-message" class="popup-message"></p>
             <button id="popup-close" class="btn btn--primary btn--small">Đóng</button>
+        </div>
+    </div>
+
+    <!-- Login Required Modal -->
+    <div id="login-required-modal" class="popup-overlay hidden">
+        <div class="popup-content glass-card" style="text-align: center; max-width: 450px;">
+            <div style="font-size: 3rem; margin-bottom: 10px;">⚠️</div>
+            <h3 class="popup-title text-glow" style="margin-bottom: 15px;">Chưa đăng nhập GitHub</h3>
+            <p style="color: var(--text-light); margin-bottom: 20px;">Bạn cần đăng nhập GitHub để cấp quyền truy cập repository trước khi có thể đẩy code.</p>
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button id="btn-login-from-modal" class="btn-github-login" style="font-size: 0.9rem; padding: 0.6rem 1.2rem;">
+                    <svg viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+                    Đăng nhập GitHub
+                </button>
+                <button id="close-login-modal" class="btn btn--ghost" style="font-size: 0.9rem; padding: 0.6rem 1.2rem;">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Logout Confirm Modal -->
+    <div id="logout-confirm-modal" class="popup-overlay hidden">
+        <div class="popup-content glass-card" style="text-align: center; max-width: 400px;">
+            <h3 class="popup-title text-glow" style="margin-bottom: 15px;">Xác nhận Đăng xuất</h3>
+            <p style="color: var(--text-light); margin-bottom: 20px;">Bạn có chắc chắn muốn đăng xuất khỏi tài khoản GitHub không?</p>
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button id="btn-confirm-logout" class="btn btn--primary" style="font-size: 0.9rem; padding: 0.6rem 1.2rem; background: var(--neon-pink); border-color: var(--neon-pink); color: white;">Đăng xuất</button>
+                <button id="btn-cancel-logout" class="btn btn--ghost" style="font-size: 0.9rem; padding: 0.6rem 1.2rem;">Hủy</button>
+            </div>
         </div>
     </div>
 

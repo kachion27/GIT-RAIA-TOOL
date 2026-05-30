@@ -63,40 +63,352 @@ function animateParticles() {
 animateParticles();
 
 // ==========================================================================
+// Auth State (Must be initialized early for clock greeting)
+// ==========================================================================
+let oauthToken = localStorage.getItem('gh_oauth_token') || null;
+let oauthUsername = localStorage.getItem('gh_oauth_username') || null;
+let oauthAvatar = localStorage.getItem('gh_oauth_avatar') || null;
+
+// ==========================================================================
+// Clock & Weather Widgets
+// ==========================================================================
+
+function updateClock() {
+    const now = new Date();
+    // Vietnam time (UTC+7)
+    const vnTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
+    
+    const hours = vnTime.getHours().toString().padStart(2, '0');
+    const minutes = vnTime.getMinutes().toString().padStart(2, '0');
+    const seconds = vnTime.getSeconds().toString().padStart(2, '0');
+    
+    const clockTime = document.getElementById('clock-time');
+    if (clockTime) clockTime.textContent = `${hours}:${minutes}:${seconds}`;
+    
+    const h = vnTime.getHours();
+    let greeting = 'Chào bạn! 👋';
+    if (h >= 5 && h < 11) greeting = 'Chào buổi sáng! 🌅';
+    else if (h >= 11 && h < 14) greeting = 'Chào buổi trưa! 🌞';
+    else if (h >= 14 && h < 18) greeting = 'Chào buổi chiều! 🌤️';
+    else if (h >= 18 && h < 22) greeting = 'Chào buổi tối! 🌙';
+    else greeting = 'Khuya rồi ngủ thôi! 💤';
+
+    // If logged in, update the greeting in the auth section
+    if (oauthToken && oauthUsername) {
+        const authGreeting = document.getElementById('auth-greeting');
+        if (authGreeting) authGreeting.textContent = greeting;
+    }
+}
+
+// Update clock every second
+updateClock();
+setInterval(updateClock, 1000);
+
+// Weather from Open-Meteo (reliable, no API key)
+async function fetchWeather() {
+    try {
+        const response = await fetch('https://api.open-meteo.com/v1/forecast?latitude=21.0285&longitude=105.8542&current_weather=true');
+        const data = await response.json();
+        
+        const tempC = Math.round(data.current_weather.temperature);
+        const code = data.current_weather.weathercode;
+        
+        // Simple mapping for WMO weather codes
+        let emoji = '⛅';
+        if (code === 0) emoji = '☀️';
+        else if (code === 1 || code === 2) emoji = '⛅';
+        else if (code === 3) emoji = '☁️';
+        else if ([45, 48].includes(code)) emoji = '🌫️';
+        else if ([51, 53, 55, 56, 57].includes(code)) emoji = '🌧️';
+        else if ([61, 63, 65, 66, 67, 80, 81, 82].includes(code)) emoji = '🌧️';
+        else if ([71, 73, 75, 77, 85, 86].includes(code)) emoji = '❄️';
+        else if ([95, 96, 99].includes(code)) emoji = '⛈️';
+        
+        const weatherTemp = document.getElementById('weather-temp');
+        const weatherEmoji = document.getElementById('weather-emoji');
+        
+        if (weatherTemp) weatherTemp.textContent = `${tempC}°C`;
+        if (weatherEmoji) weatherEmoji.textContent = emoji;
+    } catch (e) {
+        const weatherTemp = document.getElementById('weather-temp');
+        if (weatherTemp) weatherTemp.textContent = 'Lỗi';
+    }
+}
+fetchWeather();
+// Refresh weather every 10 minutes
+setInterval(fetchWeather, 600000);
+
+// ==========================================================================
+// GitHub OAuth Login
+// ==========================================================================
+
+// GitHub OAuth App Configuration
+// IMPORTANT: You need to register a GitHub OAuth App at https://github.com/settings/applications/new
+// Set the callback URL to your app's URL (e.g., https://27netteam.top/)
+const GITHUB_CLIENT_ID = 'Ov23lixGrKca2GHnclHj';
+
+// Google Apps Script URL for OAuth token exchange proxy
+// IMPORTANT: Deploy your Google Apps Script and paste the URL here
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzynWaiH-rEb7dY1jkFa8g1LcfE61EvWZELlU2GrtbQ0pdLTu1Ura8RCnazADwCoafk/exec';
+
+// Auth state is now at the top of the file
+
+const btnGithubLogin = document.getElementById('btn-github-login');
+const btnLogout = document.getElementById('btn-logout');
+const authLoggedOut = document.getElementById('auth-logged-out');
+const authLoggedIn = document.getElementById('auth-logged-in');
+const authAvatar = document.getElementById('auth-avatar');
+const authUsername = document.getElementById('auth-username');
+
+function updateAuthUI() {
+    if (oauthToken && oauthUsername) {
+        // Logged in
+        authLoggedOut.classList.add('hidden');
+        authLoggedIn.classList.remove('hidden');
+        authUsername.textContent = oauthUsername;
+        authAvatar.src = oauthAvatar || `https://github.com/${oauthUsername}.png`;
+        updateClock(); // trigger greeting update
+    } else {
+        // Logged out
+        authLoggedOut.classList.remove('hidden');
+        authLoggedIn.classList.add('hidden');
+        
+        // Restore default sleek header subtitle
+        const headerSubtitle = document.getElementById('header-subtitle');
+        if (headerSubtitle) headerSubtitle.textContent = 'Git Upload - Tự động hóa quy trình đẩy bài tập lên GitHub';
+    }
+}
+
+// Check for OAuth callback code in URL
+function handleOAuthCallback() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
+    const error = urlParams.get('error');
+    
+    if (code) {
+        // If we are in a popup window, send the code to the parent and close
+        if (window.opener) {
+            window.opener.postMessage({ type: 'oauth_code', code: code }, window.location.origin);
+            window.close();
+            return;
+        }
+
+        // Remove code from URL to clean up
+        window.history.replaceState({}, document.title, window.location.pathname);
+        
+        // Show loading state
+        if (btnGithubLogin) {
+            btnGithubLogin.disabled = true;
+            btnGithubLogin.innerHTML = `
+                <svg viewBox="0 0 24 24" style="animation: spin 1s linear infinite;"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+                Đang đăng nhập...
+            `;
+        }
+        
+        // Exchange code for token via Google Apps Script proxy
+        exchangeCodeForToken(code);
+    } else if (error) {
+        if (window.opener) {
+            window.opener.postMessage({ type: 'oauth_error', error: error }, window.location.origin);
+            window.close();
+            return;
+        }
+        window.history.replaceState({}, document.title, window.location.pathname);
+        showPopup('Đăng nhập bị hủy hoặc thất bại: ' + error);
+    }
+}
+
+async function exchangeCodeForToken(code) {
+    if (!APPS_SCRIPT_URL) {
+        console.error('APPS_SCRIPT_URL chưa được cấu hình');
+        showPopup('Chức năng đăng nhập OAuth chưa được cấu hình.');
+        resetLoginButton();
+        return;
+    }
+
+    try {
+        // Call Google Apps Script proxy to exchange code for token
+        const proxyUrl = `${APPS_SCRIPT_URL}?action=oauth&code=${encodeURIComponent(code)}`;
+        const response = await fetch(proxyUrl);
+        const data = await response.json();
+        
+        if (data.status === 'success' && data.access_token) {
+            await completeLogin(data.access_token);
+        } else {
+            throw new Error(data.message || 'Không lấy được access token');
+        }
+    } catch (error) {
+        console.error('OAuth exchange error:', error);
+        showPopup('Đăng nhập thất bại: ' + error.message + '. Vui lòng thử lại.');
+        resetLoginButton();
+    }
+}
+
+function resetLoginButton() {
+    if (btnGithubLogin) {
+        btnGithubLogin.disabled = false;
+        btnGithubLogin.innerHTML = `
+            <svg viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+            Đăng nhập bằng GitHub
+        `;
+    }
+}
+
+async function completeLogin(token) {
+    try {
+        // Get user info
+        const userResponse = await fetch('https://api.github.com/user', {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/vnd.github.v3+json'
+            }
+        });
+        
+        if (!userResponse.ok) {
+            let errText = await userResponse.text();
+            console.error('GitHub API User Error:', userResponse.status, errText);
+            throw new Error(`Mã lỗi ${userResponse.status}. Chi tiết: ${errText}`);
+        }
+        
+        const user = JSON.parse(await userResponse.text());
+        
+        oauthToken = token;
+        oauthUsername = user.login;
+        oauthAvatar = user.avatar_url;
+        
+        localStorage.setItem('gh_oauth_token', oauthToken);
+        localStorage.setItem('gh_oauth_username', oauthUsername);
+        localStorage.setItem('gh_oauth_avatar', oauthAvatar);
+        
+        updateAuthUI();
+    } catch (error) {
+        console.error('Login complete error:', error);
+        showPopup('Không thể lấy thông tin tài khoản. Lỗi: ' + error.message);
+    }
+}
+
+// Function to open GitHub Auth in a popup
+function openGitHubLoginPopup() {
+    const redirectUri = window.location.origin + window.location.pathname;
+    const scope = 'repo';
+    const authUrl = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&prompt=consent`;
+    
+    const width = 500;
+    const height = 750;
+    const left = (window.screen.width / 2) - (width / 2);
+    const top = (window.screen.height / 2) - (height / 2);
+    
+    window.open(authUrl, 'github_oauth', `width=${width},height=${height},left=${left},top=${top},status=yes,scrollbars=yes`);
+}
+
+// Listen for messages from the OAuth popup
+window.addEventListener('message', (event) => {
+    // Ensure the message is coming from our own origin
+    if (event.origin !== window.location.origin) return;
+    
+    if (event.data && event.data.type === 'oauth_code') {
+        const code = event.data.code;
+        
+        // Show loading state
+        if (btnGithubLogin) {
+            btnGithubLogin.disabled = true;
+            btnGithubLogin.innerHTML = `
+                <svg viewBox="0 0 24 24" style="animation: spin 1s linear infinite;"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+                Đang đăng nhập...
+            `;
+        }
+        
+        // Hide login required modal if open
+        if (loginRequiredModal) {
+            loginRequiredModal.classList.add('hidden');
+        }
+        
+        // Process login
+        exchangeCodeForToken(code);
+    } else if (event.data && event.data.type === 'oauth_error') {
+        showPopup('Đăng nhập đã bị hủy.');
+    }
+});
+
+// Login button click
+if (btnGithubLogin) {
+    btnGithubLogin.addEventListener('click', openGitHubLoginPopup);
+}
+
+const loginRequiredModal = document.getElementById('login-required-modal');
+const btnLoginFromModal = document.getElementById('btn-login-from-modal');
+const closeLoginModal = document.getElementById('close-login-modal');
+
+if (btnLoginFromModal) {
+    btnLoginFromModal.addEventListener('click', openGitHubLoginPopup);
+}
+
+if (closeLoginModal) {
+    closeLoginModal.addEventListener('click', () => {
+        loginRequiredModal.classList.add('hidden');
+    });
+}
+
+// Logout button
+if (btnLogout) {
+    const logoutConfirmModal = document.getElementById('logout-confirm-modal');
+    const btnConfirmLogout = document.getElementById('btn-confirm-logout');
+    const btnCancelLogout = document.getElementById('btn-cancel-logout');
+
+    btnLogout.addEventListener('click', () => {
+        if (logoutConfirmModal) {
+            logoutConfirmModal.classList.remove('hidden');
+        }
+    });
+
+    if (btnCancelLogout) {
+        btnCancelLogout.addEventListener('click', () => {
+            logoutConfirmModal.classList.add('hidden');
+        });
+    }
+
+    if (btnConfirmLogout) {
+        btnConfirmLogout.addEventListener('click', () => {
+            logoutConfirmModal.classList.add('hidden');
+            oauthToken = null;
+            oauthUsername = null;
+            oauthAvatar = null;
+            localStorage.removeItem('gh_oauth_token');
+            localStorage.removeItem('gh_oauth_username');
+            localStorage.removeItem('gh_oauth_avatar');
+            
+            updateAuthUI();
+            resetLoginButton();
+        });
+    }
+}
+
+
+
+// ==========================================================================
 // App Logic
 // ==========================================================================
 
 // Elements
-const btnAccount = document.getElementById('btn-account');
-const configSection = document.getElementById('config-section');
-const usernameInput = document.getElementById('github-username');
-const patInput = document.getElementById('github-pat');
 const btnOpenFolderModal = document.getElementById('btn-open-folder-modal');
 const folderInput = document.getElementById('folder-input');
 const folderDisplay = document.getElementById('folder-display');
 const repoPrefixInput = document.getElementById('repo-prefix');
 const repoPrivateToggle = document.getElementById('repo-private');
 const btnStart = document.getElementById('btn-start');
-const terminalLog = document.getElementById('terminal-log');
-const processStatus = document.getElementById('process-status');
 const resultSection = document.getElementById('result-section');
 const resultLinks = document.getElementById('result-links');
 const btnCopy = document.getElementById('btn-copy');
 
 const fileListContainer = document.getElementById('file-list-container');
 const fileListItems = document.getElementById('file-list-items');
+const fileCountBadge = document.getElementById('file-count-badge');
 let currentFilesData = []; // State array to store file info
 let isUploading = false; // State to track upload progress
-
-// Toggle Config Section
-btnAccount.addEventListener('click', () => {
-    configSection.classList.toggle('collapsed');
-});
 
 // Warn before reload if uploading
 window.addEventListener('beforeunload', (e) => {
     if (isUploading) {
-        // Most modern browsers ignore the custom string, but it's required to trigger the dialog
         const msg = "Quá trình upload đang diễn ra. Nếu tải lại trang, tiến trình sẽ bị hủy. Bạn có chắc chắn muốn thoát?";
         e.returnValue = msg;
         return msg;
@@ -105,17 +417,12 @@ window.addEventListener('beforeunload', (e) => {
 
 // Load stored config
 window.addEventListener('DOMContentLoaded', () => {
-    if(localStorage.getItem('gh_username')) usernameInput.value = localStorage.getItem('gh_username');
-    if(localStorage.getItem('gh_pat')) patInput.value = localStorage.getItem('gh_pat');
+    // Handle OAuth callback first
+    handleOAuthCallback();
+    
+    // Then update auth UI
+    updateAuthUI();
 });
-
-// Save config on change
-const saveConfig = () => {
-    localStorage.setItem('gh_username', usernameInput.value.trim());
-    localStorage.setItem('gh_pat', patInput.value.trim());
-};
-usernameInput.addEventListener('change', saveConfig);
-patInput.addEventListener('change', saveConfig);
 
 // Folder Selection Modal
 const folderModal = document.getElementById('folder-modal');
@@ -145,6 +452,22 @@ function removeVietnameseTones(str) {
     return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D');
 }
 
+// Get file extension icon
+function getFileIcon(filename) {
+    const ext = filename.split('.').pop().toLowerCase();
+    const iconMap = {
+        'py': '🐍', 'js': '📜', 'ts': '📘', 'html': '🌐', 'css': '🎨',
+        'java': '☕', 'c': '⚙️', 'cpp': '⚙️', 'h': '⚙️', 'cs': '💠',
+        'php': '🐘', 'rb': '💎', 'go': '🔵', 'rs': '🦀', 'swift': '🍎',
+        'kt': '🟣', 'sql': '🗃️', 'json': '📋', 'xml': '📄', 'md': '📝',
+        'txt': '📄', 'pdf': '📕', 'zip': '📦', 'rar': '📦',
+        'png': '🖼️', 'jpg': '🖼️', 'jpeg': '🖼️', 'gif': '🖼️', 'svg': '🖼️',
+        'mp4': '🎬', 'mp3': '🎵', 'doc': '📘', 'docx': '📘', 'xls': '📊', 'xlsx': '📊',
+        'ppt': '📊', 'pptx': '📊',
+    };
+    return iconMap[ext] || '📄';
+}
+
 function updatePreviews() {
     let prefix = repoPrefixInput.value.trim();
     let nameCounts = {};
@@ -152,20 +475,23 @@ function updatePreviews() {
     for (let i = 0; i < currentFilesData.length; i++) {
         let data = currentFilesData[i];
         
-        // Logic: Prefix + customBaseName
         let nameParts = [];
-        if (prefix) nameParts.push(prefix);
+        if (prefix) {
+            nameParts.push(prefix);
+        } else if (data.file && data.file.webkitRelativePath) {
+            let folderName = data.file.webkitRelativePath.split('/')[0];
+            if (folderName) nameParts.push(folderName);
+        }
         
         let baseNameToUse = data.customBaseName || data.originalBaseName;
         if (baseNameToUse) nameParts.push(baseNameToUse);
         
         let finalName = nameParts.join('_');
         
-        // Sanitize: loại bỏ dấu tiếng việt và thay khoảng trắng bằng dấu gạch dưới
         finalName = removeVietnameseTones(finalName);
         finalName = finalName.replace(/\s+/g, '_'); 
         
-        data.finalRepoName = finalName; // Save to state for upload
+        data.finalRepoName = finalName;
         
         if (nameCounts[finalName]) {
             nameCounts[finalName]++;
@@ -177,18 +503,56 @@ function updatePreviews() {
     // Render
     for (let i = 0; i < currentFilesData.length; i++) {
         let finalName = currentFilesData[i].finalRepoName;
-        let previewEl = document.getElementById(`preview-${i}`);
+        let repoSpan = document.getElementById(`repo-preview-${i}`);
         
-        if (nameCounts[finalName] > 1) {
-            previewEl.innerText = finalName + " (TRÙNG)";
-            previewEl.style.color = "#ff3333";
-            previewEl.style.textShadow = "0 0 8px #ff3333";
-        } else {
-            previewEl.innerText = finalName;
-            previewEl.style.color = "var(--neon-pink)";
-            previewEl.style.textShadow = "0 0 5px rgba(255, 42, 109, 0.5)";
+        if (repoSpan) {
+            if (nameCounts[finalName] > 1) {
+                repoSpan.innerText = finalName + " (TRÙNG)";
+                repoSpan.style.color = "#ff3333";
+            } else {
+                repoSpan.innerText = finalName;
+                repoSpan.style.color = "";
+            }
         }
     }
+}
+
+// Attach the handler to the original modal input
+folderInput.addEventListener('change', (e) => {
+    handleFolderSelect(e.target.files);
+});
+
+// Global Drag and Drop Overlay Logic
+const globalDropOverlay = document.getElementById('global-drop-overlay');
+const globalFolderInput = document.getElementById('global-folder-input');
+
+if (globalDropOverlay && globalFolderInput) {
+    // Show overlay when dragging anywhere on window
+    window.addEventListener('dragenter', (e) => {
+        // Prevent global drop from interfering if the specific folder modal is already open
+        if (!folderModal.classList.contains('hidden')) {
+            return;
+        }
+
+        // Only trigger if it might be a file drag
+        if (e.dataTransfer && e.dataTransfer.types.includes('Files')) {
+            globalDropOverlay.classList.remove('hidden');
+        }
+    });
+
+    // Hide overlay when leaving the window
+    globalDropOverlay.addEventListener('dragleave', (e) => {
+        // Prevent flickering by checking if we actually left the overlay
+        if (!e.relatedTarget || e.relatedTarget.nodeName === 'HTML') {
+            globalDropOverlay.classList.add('hidden');
+        }
+    });
+
+    // Handle file drop on the invisible input
+    globalFolderInput.addEventListener('change', (e) => {
+        globalDropOverlay.classList.add('hidden');
+        handleFolderSelect(e.target.files);
+    });
 }
 
 // Listen to global prefix changes to update all previews
@@ -200,24 +564,48 @@ repoPrefixInput.addEventListener('input', (e) => {
     updatePreviews();
 });
 
-folderInput.addEventListener('change', (e) => {
-    if (e.target.files.length > 0) {
-        const firstFile = e.target.files[0];
+// Also update previews when privacy toggle changes
+repoPrivateToggle.addEventListener('change', () => {
+    updatePrivacyBadges();
+});
+
+function updatePrivacyBadges() {
+    const isPrivate = repoPrivateToggle.checked;
+    const badges = document.querySelectorAll('.privacy-badge');
+    badges.forEach(badge => {
+        if (isPrivate) {
+            badge.className = 'privacy-badge private';
+            badge.innerHTML = '🔒 Private';
+        } else {
+            badge.className = 'privacy-badge public';
+            badge.innerHTML = '🌐 Public';
+        }
+    });
+}
+
+function handleFolderSelect(files) {
+    if (files.length > 0) {
+        const firstFile = files[0];
         const folderName = firstFile.webkitRelativePath.split('/')[0];
-        folderDisplay.value = `${folderName} (${e.target.files.length} files)`;
-        folderModal.classList.add('hidden'); // Auto close modal after selection
+        folderDisplay.value = `${folderName} (${files.length} files)`;
+        folderModal.classList.add('hidden');
         
-        // Render File List
+        // Render File Cards
         currentFilesData = [];
         fileListItems.innerHTML = '';
         fileListContainer.classList.remove('hidden');
         
-        for (let i = 0; i < e.target.files.length; i++) {
-            const file = e.target.files[i];
+        if (fileCountBadge) {
+            fileCountBadge.textContent = `${files.length} file(s)`;
+        }
+        
+        const isPrivate = repoPrivateToggle.checked;
+        
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
             let fileNameFull = file.name;
             let fileNameWithoutExt = fileNameFull.substring(0, fileNameFull.lastIndexOf('.')) || fileNameFull;
             
-            // Create data object
             let cleanBaseName = removeVietnameseTones(fileNameWithoutExt);
             currentFilesData.push({
                 file: file,
@@ -226,16 +614,49 @@ folderInput.addEventListener('change', (e) => {
                 customBaseName: cleanBaseName
             });
             
-            // Create DOM element (Table Row)
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td class="file-item-name" title="${fileNameFull}">${fileNameFull}</td>
-                <td class="file-item-suffix">
-                    <input type="text" id="basename-${i}" value="${cleanBaseName}">
-                </td>
-                <td class="file-item-preview" id="preview-${i}"></td>
+            // Create Card DOM
+            const card = document.createElement('div');
+            card.className = 'file-card status-pending';
+            card.id = `file-card-${i}`;
+            card.innerHTML = `
+                <div class="file-card-header">
+                    <div class="file-card-left">
+                        <div class="file-card-icon">${getFileIcon(fileNameFull)}</div>
+                        <div class="file-card-info">
+                            <div class="file-card-name" title="${fileNameFull}">${fileNameFull}</div>
+                            <div class="file-card-meta">
+                                <span class="privacy-badge ${isPrivate ? 'private' : 'public'}">${isPrivate ? '🔒 Private' : '🌐 Public'}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="file-card-middle">
+                        <span class="repo-label">Tên Repo:</span>
+                        <span id="repo-preview-${i}" class="repo-preview-text"></span>
+                        <div class="file-card-suffix">
+                            <input type="text" id="basename-${i}" value="${cleanBaseName}" placeholder="Tên hậu tố">
+                        </div>
+                    </div>
+
+                    <div class="file-card-right">
+                        <div class="file-card-status" id="status-badge-${i}">
+                            <span class="status-icon" id="status-icon-${i}">⏳</span>
+                            <span class="status-text" id="status-text-${i}">Chờ xử lý</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="file-card-progress" id="progress-${i}">
+                    <div class="progress-header">
+                        <span class="progress-label" id="progress-label-${i}">Đang chờ...</span>
+                        <span class="progress-percent" id="progress-percent-${i}">0%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress-fill-${i}"></div>
+                    </div>
+                    <div class="file-card-error-msg" id="error-msg-${i}"></div>
+                </div>
             `;
-            fileListItems.appendChild(tr);
+            fileListItems.appendChild(card);
             
             // Add listener to individual basename input
             const basenameInput = document.getElementById(`basename-${i}`);
@@ -248,7 +669,6 @@ folderInput.addEventListener('change', (e) => {
                 updatePreviews();
             });
             
-            // Revert to original if left empty when user clicks away
             basenameInput.addEventListener('blur', (event) => {
                 if (event.target.value.trim() === '') {
                     event.target.value = currentFilesData[i].originalBaseName;
@@ -257,23 +677,64 @@ folderInput.addEventListener('change', (e) => {
                 }
             });
         }
-        updatePreviews(); // Initial preview calculation
+        updatePreviews();
         
     } else {
         folderDisplay.value = "";
         fileListContainer.classList.add('hidden');
         currentFilesData = [];
     }
-});
+}
 
-// Logging utility
-function logTerminal(message, type = 'info') {
-    const time = new Date().toLocaleTimeString('vi-VN', { hour12: false });
-    const div = document.createElement('div');
-    div.className = `log-line ${type}`;
-    div.innerHTML = `<span class="time">[${time}]</span> ${message}`;
-    terminalLog.appendChild(div);
-    terminalLog.scrollTop = terminalLog.scrollHeight;
+// ==========================================================================
+// Progress Bar Helpers
+// ==========================================================================
+
+function updateFileProgress(index, percent, label) {
+    const progressEl = document.getElementById(`progress-${index}`);
+    const fillEl = document.getElementById(`progress-fill-${index}`);
+    const percentEl = document.getElementById(`progress-percent-${index}`);
+    const labelEl = document.getElementById(`progress-label-${index}`);
+    
+    if (progressEl) progressEl.classList.add('active');
+    if (fillEl) fillEl.style.width = `${percent}%`;
+    if (percentEl) percentEl.textContent = `${percent}%`;
+    if (labelEl) labelEl.textContent = label;
+}
+
+function setFileStatus(index, status, errorMsg = '') {
+    const card = document.getElementById(`file-card-${index}`);
+    const statusIcon = document.getElementById(`status-icon-${index}`);
+    const statusText = document.getElementById(`status-text-${index}`);
+    const errorMsgEl = document.getElementById(`error-msg-${index}`);
+    
+    if (card) {
+        card.className = `file-card status-${status}`;
+    }
+    
+    if (statusIcon && statusText) {
+        switch(status) {
+            case 'uploading':
+                statusIcon.textContent = '🔄';
+                statusText.textContent = 'Đang tải...';
+                break;
+            case 'done':
+                statusIcon.textContent = '✅';
+                statusText.textContent = 'Thành công';
+                break;
+            case 'error':
+                statusIcon.textContent = '❌';
+                statusText.textContent = 'Thất bại';
+                break;
+            default:
+                statusIcon.textContent = '⏳';
+                statusText.textContent = 'Chờ xử lý';
+        }
+    }
+    
+    if (errorMsgEl && errorMsg) {
+        errorMsgEl.textContent = errorMsg;
+    }
 }
 
 // Support Banner Close
@@ -377,7 +838,6 @@ function readFileAsBase64(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => {
-            // result is "data:MIME;base64,CONTENT..."
             const base64 = reader.result.split(',')[1];
             resolve(base64);
         };
@@ -388,20 +848,24 @@ function readFileAsBase64(file) {
 
 // Main Process
 btnStart.addEventListener('click', async () => {
-    const username = usernameInput.value.trim();
-    const pat = patInput.value.trim();
-    const files = folderInput.files;
+    if (currentFilesData.length === 0) {
+        showPopup("Vui lòng chọn thư mục chứa project của bạn (Thư mục nguồn).");
+        return;
+    }
+
+    if (!oauthToken) {
+        if (loginRequiredModal) {
+            loginRequiredModal.classList.remove('hidden');
+        } else {
+            showPopup("Vui lòng đăng nhập GitHub để tiếp tục.");
+        }
+        return;
+    }
+
+    let username = oauthUsername;
+    let pat = oauthToken;
     let prefix = repoPrefixInput.value.trim();
     const isPrivate = repoPrivateToggle.checked;
-
-    if (!username || !pat) {
-        showPopup("Vui lòng nhập Username và PAT.");
-        return;
-    }
-    if (files.length === 0) {
-        showPopup("Vui lòng chọn thư mục nguồn.");
-        return;
-    }
     
     // Check for duplicates
     let names = currentFilesData.map(d => d.finalRepoName);
@@ -418,7 +882,7 @@ btnStart.addEventListener('click', async () => {
     // Wait for user to click continue
     document.getElementById('donate-ad-continue').onclick = async () => {
         donateModal.classList.add('hidden');
-        await startUploadProcess(username, pat, files, prefix, isPrivate);
+        await startUploadProcess(username, pat, prefix, isPrivate);
     };
     
     // Close button
@@ -427,109 +891,121 @@ btnStart.addEventListener('click', async () => {
     };
 });
 
-async function startUploadProcess(username, pat, files, prefix, isPrivate) {
+async function startUploadProcess(username, pat, prefix, isPrivate) {
     isUploading = true;
-    logTerminal("--------------------------------", "info");
-    logTerminal(`🚀 Bắt đầu tạo repository cho từng file (${files.length} files)`, "system");
-    processStatus.innerText = "Đang chạy...";
-    processStatus.style.color = "var(--neon-green)";
     btnStart.disabled = true;
     
     // Clear previous results
     resultLinks.value = ""; 
 
+    // Disable all basename inputs during upload
+    document.querySelectorAll('.file-card-suffix input').forEach(input => {
+        input.disabled = true;
+    });
+
     try {
-        saveConfig();
 
         for (let i = 0; i < currentFilesData.length; i++) {
             const data = currentFilesData[i];
             const file = data.file;
             let fileNameFull = file.name;
-            
-            // Lấy tên repo đã được preview và lưu sẵn
             let repoName = data.finalRepoName;
 
-            logTerminal(`\n⏳ Đang xử lý file ${i+1}/${currentFilesData.length}: ${fileNameFull}`, "info");
+            // Start progress for this file
+            setFileStatus(i, 'uploading');
+            updateFileProgress(i, 5, 'Đang tạo Repository...');
 
-            // 1. Create Repository
-            logTerminal(`   -> Tạo Repository: ${repoName}...`, "info");
-            const repoData = await githubRequest('https://api.github.com/user/repos', 'POST', {
-                name: repoName,
-                private: isPrivate,
-                auto_init: true
-            }, pat);
-            const repoUrl = repoData.html_url;
-            const actualRepoName = repoData.name;
-            logTerminal(`   ✅ Tạo repo thành công: ${actualRepoName}`, "success");
+            try {
+                // 1. Create Repository
+                updateFileProgress(i, 15, `Đang tạo repo: ${repoName}...`);
+                const repoData = await githubRequest('https://api.github.com/user/repos', 'POST', {
+                    name: repoName,
+                    private: isPrivate,
+                    auto_init: true
+                }, pat);
+                const repoUrl = repoData.html_url;
+                const actualRepoName = repoData.name;
 
-            // Add a small delay to ensure GitHub has fully initialized the repo and default branch
-            await new Promise(r => setTimeout(r, 1500));
+                updateFileProgress(i, 30, 'Repo đã tạo. Đang khởi tạo...');
 
-            // 2. Get reference to main/master
-            let defaultBranch = repoData.default_branch || "main";
-            const refData = await githubRequest(`https://api.github.com/repos/${username}/${actualRepoName}/git/ref/heads/${defaultBranch}`, 'GET', null, pat);
-            const latestCommitSha = refData.object.sha;
+                // Add delay for GitHub to initialize
+                await new Promise(r => setTimeout(r, 1500));
 
-            const commitData = await githubRequest(`https://api.github.com/repos/${username}/${actualRepoName}/git/commits/${latestCommitSha}`, 'GET', null, pat);
-            const baseTreeSha = commitData.tree.sha;
+                // 2. Get reference to main/master
+                updateFileProgress(i, 40, 'Đang lấy reference branch...');
+                let defaultBranch = repoData.default_branch || "main";
+                const refData = await githubRequest(`https://api.github.com/repos/${username}/${actualRepoName}/git/ref/heads/${defaultBranch}`, 'GET', null, pat);
+                const latestCommitSha = refData.object.sha;
 
-            // 3. Create Blob for the file
-            logTerminal(`   -> Uploading nội dung file...`, "info");
-            const base64Content = await readFileAsBase64(file);
-            const blobData = await githubRequest(`https://api.github.com/repos/${username}/${actualRepoName}/git/blobs`, 'POST', {
-                content: base64Content,
-                encoding: "base64"
-            }, pat);
+                const commitData = await githubRequest(`https://api.github.com/repos/${username}/${actualRepoName}/git/commits/${latestCommitSha}`, 'GET', null, pat);
+                const baseTreeSha = commitData.tree.sha;
 
-            const treeItems = [{
-                path: fileNameFull, // Put the file at the root of its own repo
-                mode: "100644",
-                type: "blob",
-                sha: blobData.sha
-            }];
+                // 3. Create Blob
+                updateFileProgress(i, 55, 'Đang upload nội dung file...');
+                const base64Content = await readFileAsBase64(file);
+                const blobData = await githubRequest(`https://api.github.com/repos/${username}/${actualRepoName}/git/blobs`, 'POST', {
+                    content: base64Content,
+                    encoding: "base64"
+                }, pat);
 
-            // 4. Create new tree
-            const newTreeData = await githubRequest(`https://api.github.com/repos/${username}/${actualRepoName}/git/trees`, 'POST', {
-                base_tree: baseTreeSha,
-                tree: treeItems
-            }, pat);
+                const treeItems = [{
+                    path: fileNameFull,
+                    mode: "100644",
+                    type: "blob",
+                    sha: blobData.sha
+                }];
 
-            // 5. Create new commit
-            const newCommitData = await githubRequest(`https://api.github.com/repos/${username}/${actualRepoName}/git/commits`, 'POST', {
-                message: `Add ${fileNameFull} via Git Upload 27NetTeam`,
-                tree: newTreeData.sha,
-                parents: [latestCommitSha]
-            }, pat);
+                // 4. Create new tree
+                updateFileProgress(i, 70, 'Đang tạo tree mới...');
+                const newTreeData = await githubRequest(`https://api.github.com/repos/${username}/${actualRepoName}/git/trees`, 'POST', {
+                    base_tree: baseTreeSha,
+                    tree: treeItems
+                }, pat);
 
-            // 6. Update reference
-            logTerminal(`   -> Đang push lên GitHub...`, "info");
-            await githubRequest(`https://api.github.com/repos/${username}/${actualRepoName}/git/refs/heads/${defaultBranch}`, 'PATCH', {
-                sha: newCommitData.sha
-            }, pat);
+                // 5. Create new commit
+                updateFileProgress(i, 85, 'Đang tạo commit...');
+                const newCommitData = await githubRequest(`https://api.github.com/repos/${username}/${actualRepoName}/git/commits`, 'POST', {
+                    message: `Add ${fileNameFull} via Git Upload 27NetTeam`,
+                    tree: newTreeData.sha,
+                    parents: [latestCommitSha]
+                }, pat);
 
-            logTerminal(`   🎉 Hoàn tất repo cho: ${fileNameFull}`, "success");
-            
-            // Show result link for this repo
-            resultSection.classList.remove('hidden');
-            resultLinks.value += (resultLinks.value ? "\n" : "") + repoUrl;
+                // 6. Push
+                updateFileProgress(i, 95, 'Đang push lên GitHub...');
+                await githubRequest(`https://api.github.com/repos/${username}/${actualRepoName}/git/refs/heads/${defaultBranch}`, 'PATCH', {
+                    sha: newCommitData.sha
+                }, pat);
+
+                // Done!
+                updateFileProgress(i, 100, '✅ Hoàn thành!');
+                setFileStatus(i, 'done');
+                
+                // Show result link
+                resultSection.classList.remove('hidden');
+                resultLinks.value += (resultLinks.value ? "\n" : "") + repoUrl;
+
+            } catch (fileError) {
+                console.error(`Error for file ${fileNameFull}:`, fileError);
+                updateFileProgress(i, 100, '❌ Lỗi!');
+                setFileStatus(i, 'error', fileError.message);
+            }
         }
 
-        logTerminal(`\n✅ TẤT CẢ FILE ĐÃ ĐƯỢC ĐẨY LÊN GITHUB!`, "success");
-        processStatus.innerText = "Hoàn thành";
-        
     } catch (error) {
         console.error(error);
-        logTerminal(`❌ Lỗi: ${error.message}`, "error");
-        processStatus.innerText = "Lỗi";
-        processStatus.style.color = "var(--neon-pink)";
+        showPopup(`Lỗi: ${error.message}`);
     } finally {
         isUploading = false;
         btnStart.disabled = false;
+        // Re-enable inputs
+        document.querySelectorAll('.file-card-suffix input').forEach(input => {
+            input.disabled = false;
+        });
     }
 }
 
 // Version Display
 const appVersionElement = document.getElementById('app-version');
 if (appVersionElement) {
-    appVersionElement.innerText = "phiên bản : JS-V2.1.0 (Vite Build)";
+    appVersionElement.innerText = "phiên bản : JS-V3.0";
 }
