@@ -851,7 +851,14 @@ async function githubRequest(url, method = 'GET', body = null, pat) {
             const errJson = await response.json();
             if(errJson.message) errStr = errJson.message;
         } catch(e){}
-        throw new Error(`API Error ${response.status}: ${errStr}`);
+        let translatedMsg = `Lỗi API ${response.status}: ${errStr}`;
+        if (response.status === 401) translatedMsg = `Lỗi 401: Xác thực thất bại (Vui lòng đăng nhập lại).`;
+        else if (response.status === 403) translatedMsg = `Lỗi 403: Bị từ chối truy cập (Thiếu quyền cấp cho ứng dụng).`;
+        else if (response.status === 404) translatedMsg = `Lỗi 404: Không tìm thấy tài khoản hoặc tài nguyên.`;
+        else if (response.status === 409) translatedMsg = `Lỗi 409: Xung đột dữ liệu (Repo trống hoặc có lỗi đẩy code).`;
+        else if (response.status === 422) translatedMsg = `Lỗi 422: Tên Repository đã tồn tại trên GitHub hoặc chứa ký tự không hợp lệ.`;
+        
+        throw new Error(translatedMsg);
     }
     return response.json();
 }
@@ -1102,8 +1109,13 @@ async function handleGoogleLogin() {
             scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email',
             callback: async (tokenResponse) => {
                 if (tokenResponse && tokenResponse.access_token) {
-                    googleAccessToken = tokenResponse.access_token;
+                    const grantedScopes = tokenResponse.scope || '';
+                    if (!grantedScopes.includes('drive.file') || !grantedScopes.includes('spreadsheets')) {
+                        showPopup("Bạn phải tích chọn CẤP QUYỀN truy cập Google Drive và Google Sheets ở màn hình đăng nhập thì hệ thống mới có thể tạo file được. Vui lòng thử đăng nhập lại!");
+                        return;
+                    }
                     
+                    googleAccessToken = tokenResponse.access_token;
                     // Chuyển UI nút Google trong modal nếu có
                     if(btnLoginGoogle) btnLoginGoogle.classList.add('hidden');
                     if(btnPushGsheet) btnPushGsheet.classList.remove('hidden');
