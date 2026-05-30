@@ -1281,7 +1281,13 @@ async function executePushToGoogleSheets(btnElement) {
 
         if (!createRes.ok) {
             const errData = await createRes.json();
-            throw new Error("Lỗi tạo Sheet: " + (errData.error?.message || createRes.statusText));
+            let errMsg = errData.error?.message || createRes.statusText;
+            if (errMsg.includes("insufficient authentication scopes")) {
+                errMsg = "Thiếu quyền truy cập. Bạn cần Đăng xuất Google và Đăng nhập lại, nhớ tích chọn CẤP QUYỀN Drive và Sheets.";
+            } else if (errMsg.includes("Request is missing required authentication credential") || errMsg.includes("Invalid Credentials")) {
+                errMsg = "Phiên đăng nhập không hợp lệ hoặc đã hết hạn. Vui lòng đăng xuất và đăng nhập lại.";
+            }
+            throw new Error("Lỗi tạo Sheet: " + errMsg);
         }
         const sheetData = await createRes.json();
         const spreadsheetId = sheetData.spreadsheetId;
