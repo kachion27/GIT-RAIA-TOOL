@@ -581,6 +581,7 @@ input:checked + .slider:before {
     transition: var(--transition);
     position: relative;
     overflow: hidden;
+    flex-shrink: 0;
 }
 
 .file-card::before {
@@ -1210,6 +1211,8 @@ input:checked + .slider:before {
     color: var(--text-main);
     margin-bottom: 1.5rem;
     font-size: 1.05rem;
+    word-wrap: break-word;
+    word-break: break-word;
 }
 .popup-content .btn {
     width: 50%;
@@ -1325,4 +1328,12 @@ input:checked + .slider:before {
         flex-direction: column;
         text-align: center;
     }
+}
+
+/* ==========================================================================
+   Animations
+   ========================================================================== */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }

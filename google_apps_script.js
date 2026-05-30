@@ -87,6 +87,42 @@ function doGet(e) {
     }
   }
   
+  // === ACTION: Bulk Upload Repo Links to Sheets ===
+  if (action === 'bulk_upload') {
+    try {
+      var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+      var data;
+      // Handle both GET (JSON string in parameter) and POST (postData)
+      if (e.postData && e.postData.contents) {
+        data = JSON.parse(e.postData.contents);
+      } else if (e.parameter.data) {
+        data = JSON.parse(e.parameter.data);
+      } else {
+        throw new Error("No data provided");
+      }
+      
+      var rows = data.map(function(item) {
+        return [item.suffix, item.url];
+      });
+      
+      if (rows.length > 0) {
+        var lastRow = sheet.getLastRow();
+        sheet.getRange(lastRow + 1, 1, rows.length, 2).setValues(rows);
+      }
+      
+      return ContentService.createTextOutput(JSON.stringify({
+        "status": "success",
+        "message": "Đã lưu " + rows.length + " links vào Sheets"
+      })).setMimeType(ContentService.MimeType.JSON);
+      
+    } catch (error) {
+      return ContentService.createTextOutput(JSON.stringify({
+        "status": "error",
+        "message": error.toString()
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+  }
+
   // === ACTION: Webhook - Lưu repo link vào Sheets (chức năng cũ) ===
   var repoName = e.parameter.repo_name || "Unknown Repo";
   var repoUrl = e.parameter.repo_url || "";
@@ -117,7 +153,7 @@ function doGet(e) {
   } else {
     return ContentService.createTextOutput(JSON.stringify({
       "status": "error",
-      "message": "Thiếu tham số repo_url"
+      "message": "Thiếu tham số repo_url hoặc action"
     })).setMimeType(ContentService.MimeType.JSON);
   }
 }
@@ -126,3 +162,4 @@ function doGet(e) {
 function doPost(e) {
   return doGet(e);
 }
+

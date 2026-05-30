@@ -155,8 +155,8 @@ const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzynWaiH-rEb7dY
 
 const btnGithubLogin = document.getElementById('btn-github-login');
 const btnLogout = document.getElementById('btn-logout');
-const authLoggedOut = document.getElementById('auth-logged-out');
-const authLoggedIn = document.getElementById('auth-logged-in');
+const authLoggedOut = document.getElementById('github-logged-out');
+const authLoggedIn = document.getElementById('github-logged-in');
 const authAvatar = document.getElementById('auth-avatar');
 const authUsername = document.getElementById('auth-username');
 
@@ -1001,6 +1001,7 @@ async function startUploadProcess(username, pat, prefix, isPrivate) {
                 // Done!
                 updateFileProgress(i, 100, '✅ Hoàn thành!');
                 setFileStatus(i, 'done');
+                data.repoUrl = repoUrl; // Save repoUrl for pushing to Google Sheets
                 
                 // Show result link
                 resultSection.classList.remove('hidden');
@@ -1039,5 +1040,294 @@ async function startUploadProcess(username, pat, prefix, isPrivate) {
 // Version Display
 const appVersionElement = document.getElementById('app-version');
 if (appVersionElement) {
-    appVersionElement.innerText = "phiên bản : JS-V3.0";
+    appVersionElement.innerText = "phiên bản : JS-V3.1";
 }
+
+// Document Title Typewriter Effect
+const titleTexts = [
+    "Git Upload",
+    "Công cụ đẩy bài tập code tự động",
+    "27NetTeam X RAIA RIKKEI"
+];
+let titleIndex = 0;
+let titleTextIndex = 0;
+let titleIsDeleting = false;
+
+function titleTypeWriter() {
+    const currentText = titleTexts[titleTextIndex];
+    
+    if (titleIsDeleting) {
+        document.title = currentText.substring(0, titleIndex - 1) || "\u200E";
+        titleIndex--;
+    } else {
+        document.title = currentText.substring(0, titleIndex + 1);
+        titleIndex++;
+    }
+
+    let typeSpeed = titleIsDeleting ? 50 : 150;
+
+    if (!titleIsDeleting && titleIndex === currentText.length) {
+        typeSpeed = 2000; // Wait before deleting
+        titleIsDeleting = true;
+    } else if (titleIsDeleting && titleIndex === 0) {
+        titleIsDeleting = false;
+        titleTextIndex = (titleTextIndex + 1) % titleTexts.length;
+        typeSpeed = 500; // Wait before typing next
+    }
+    setTimeout(titleTypeWriter, typeSpeed);
+}
+
+// Start the title effect
+titleTypeWriter();
+
+// Google Sheets & Google OAuth Integration
+const btnLoginGoogle = document.getElementById('btn-login-google');
+const btnPushGsheet = document.getElementById('btn-push-gsheet');
+const googleAuthMsg = document.getElementById('google-auth-msg');
+
+const GOOGLE_CLIENT_ID = '1078257862435-df8m68qv08re9q7um4hp5htm8indl6k6.apps.googleusercontent.com'; 
+let googleAccessToken = null;
+let tokenClient;
+
+window.addEventListener('DOMContentLoaded', () => {
+    // Không khởi tạo ngay ở đây vì file script của Google dùng thuộc tính async defer
+    // Có thể nó chưa tải xong lúc DOMContentLoaded
+});
+
+async function handleGoogleLogin() {
+    // Nếu chưa khởi tạo tokenClient thì thử khởi tạo lại
+    if (!tokenClient && typeof google !== 'undefined' && google.accounts) {
+        tokenClient = google.accounts.oauth2.initTokenClient({
+            client_id: GOOGLE_CLIENT_ID,
+            scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email',
+            callback: async (tokenResponse) => {
+                if (tokenResponse && tokenResponse.access_token) {
+                    googleAccessToken = tokenResponse.access_token;
+                    
+                    // Chuyển UI nút Google trong modal nếu có
+                    if(btnLoginGoogle) btnLoginGoogle.classList.add('hidden');
+                    if(btnPushGsheet) btnPushGsheet.classList.remove('hidden');
+                    if(googleAuthMsg) {
+                        googleAuthMsg.classList.add('hidden');
+                    }
+
+                    // Chuyển UI Google trên header
+                    const googleLoggedOut = document.getElementById('google-logged-out');
+                    const googleLoggedIn = document.getElementById('google-logged-in');
+                    if (googleLoggedOut) googleLoggedOut.classList.add('hidden');
+                    if (googleLoggedIn) googleLoggedIn.classList.remove('hidden');
+                    
+                    // Lấy thông tin user profile
+                    try {
+                        const res = await fetch('https://www.googleapis.com/oauth2/v1/userinfo?alt=json&access_token=' + googleAccessToken);
+                        const userInfo = await res.json();
+                        
+                        const googleAvatar = document.getElementById('google-avatar');
+                        const googleName = document.getElementById('google-name');
+                        
+                        if (googleAvatar && googleName && userInfo && userInfo.picture) {
+                            googleAvatar.src = userInfo.picture;
+                            googleName.innerText = userInfo.name || userInfo.email || 'Google User';
+                        }
+                        
+                        // Lưu vào localStorage để F5 không mất
+                        localStorage.setItem('googleAccessToken', googleAccessToken);
+                        localStorage.setItem('googleUserInfo', JSON.stringify(userInfo));
+                    } catch (e) {
+                        console.error("Lỗi lấy thông tin Google Profile:", e);
+                    }
+                }
+            },
+        });
+    }
+
+    if (!tokenClient) {
+        showPopup("Thư viện Google chưa tải xong hoặc mạng có vấn đề. Vui lòng thử lại sau vài giây.");
+        return;
+    }
+    
+    if (GOOGLE_CLIENT_ID === 'YOUR_GOOGLE_CLIENT_ID_HERE') {
+        showPopup("Admin chưa cấu hình GOOGLE_CLIENT_ID trong script.js!");
+        return;
+    }
+    
+    // Gọi popup đăng nhập
+    tokenClient.requestAccessToken({prompt: 'consent'});
+}
+
+// Khôi phục trạng thái Google Auth khi F5
+function restoreGoogleAuth() {
+    const savedToken = localStorage.getItem('googleAccessToken');
+    const savedUserInfoStr = localStorage.getItem('googleUserInfo');
+    
+    if (savedToken && savedUserInfoStr) {
+        googleAccessToken = savedToken;
+        try {
+            const userInfo = JSON.parse(savedUserInfoStr);
+            
+            // Chuyển UI nút Google trong modal nếu có
+            if(btnLoginGoogle) btnLoginGoogle.classList.add('hidden');
+            if(btnPushGsheet) btnPushGsheet.classList.remove('hidden');
+            if(googleAuthMsg) {
+                googleAuthMsg.classList.add('hidden');
+            }
+
+            // Chuyển UI Google trên header
+            const googleLoggedOut = document.getElementById('google-logged-out');
+            const googleLoggedIn = document.getElementById('google-logged-in');
+            if (googleLoggedOut) googleLoggedOut.classList.add('hidden');
+            if (googleLoggedIn) googleLoggedIn.classList.remove('hidden');
+            
+            const googleAvatar = document.getElementById('google-avatar');
+            const googleName = document.getElementById('google-name');
+            
+            if (googleAvatar && googleName && userInfo && userInfo.picture) {
+                googleAvatar.src = userInfo.picture;
+                googleName.innerText = userInfo.name || userInfo.email || 'Google User';
+            }
+        } catch(e) {
+            console.error("Lỗi parse googleUserInfo", e);
+        }
+    }
+}
+// Chạy hàm khôi phục
+restoreGoogleAuth();
+
+if (btnLoginGoogle) {
+    btnLoginGoogle.addEventListener('click', handleGoogleLogin);
+}
+
+const btnHeaderGoogleLogin = document.getElementById('btn-header-google-login');
+if (btnHeaderGoogleLogin) {
+    btnHeaderGoogleLogin.addEventListener('click', handleGoogleLogin);
+}
+
+const btnGoogleLogout = document.getElementById('btn-google-logout');
+if (btnGoogleLogout) {
+    btnGoogleLogout.addEventListener('click', () => {
+        googleAccessToken = null;
+        localStorage.removeItem('googleAccessToken');
+        localStorage.removeItem('googleUserInfo');
+        
+        const googleLoggedOut = document.getElementById('google-logged-out');
+        const googleLoggedIn = document.getElementById('google-logged-in');
+        if (googleLoggedOut) googleLoggedOut.classList.remove('hidden');
+        if (googleLoggedIn) googleLoggedIn.classList.add('hidden');
+        
+        if(btnLoginGoogle) btnLoginGoogle.classList.remove('hidden');
+        if(btnPushGsheet) btnPushGsheet.classList.add('hidden');
+        if(googleAuthMsg) {
+            googleAuthMsg.classList.remove('hidden');
+        }
+    });
+}
+
+async function executePushToGoogleSheets(btnElement) {
+    if (!googleAccessToken) {
+        showPopup("Vui lòng đăng nhập Google trước!");
+        return;
+    }
+
+    // Collect data
+    const pushData = [];
+    for (let i = 0; i < currentFilesData.length; i++) {
+        const data = currentFilesData[i];
+        if (data.repoUrl) {
+            pushData.push([
+                data.customBaseName || data.originalBaseName,
+                data.repoUrl
+            ]);
+        }
+    }
+    
+    if (pushData.length === 0) {
+        showPopup("Không có link repo nào để đẩy! Vui lòng upload code trước.");
+        return;
+    }
+
+    const originalText = btnElement.innerHTML;
+    btnElement.disabled = true;
+    btnElement.innerHTML = `
+        <svg viewBox="0 0 24 24" style="animation: spin 1s linear infinite; width: 16px; height: 16px; display: inline-block; vertical-align: middle;"><path fill="currentColor" d="M12 4V2A10 10 0 0 0 2 12h2a8 8 0 0 1 8-8Z"/></svg>
+        Đang tạo file...
+    `;
+
+    try {
+        // 1. Tạo mới Spreadsheet
+        const createRes = await fetch('https://sheets.googleapis.com/v4/spreadsheets', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${googleAccessToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                properties: {
+                    title: `[Git Upload] Danh Sách Repo - ${new Date().toLocaleString('vi-VN')}`
+                }
+            })
+        });
+
+        if (!createRes.ok) {
+            const errData = await createRes.json();
+            throw new Error("Lỗi tạo Sheet: " + (errData.error?.message || createRes.statusText));
+        }
+        const sheetData = await createRes.json();
+        const spreadsheetId = sheetData.spreadsheetId;
+        const sheetUrl = sheetData.spreadsheetUrl;
+
+        // 2. Ghi dữ liệu vào Spreadsheet
+        const writeRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/A1:append?valueInputOption=USER_ENTERED`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${googleAccessToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                values: [
+                    ["Bài", "Link Repository"], // Header
+                    ...pushData
+                ]
+            })
+        });
+
+        if (!writeRes.ok) {
+            const errData = await writeRes.json();
+            throw new Error("Lỗi ghi dữ liệu: " + (errData.error?.message || writeRes.statusText));
+        }
+
+        // Thành công
+        btnElement.innerHTML = `✅ Đã tạo thành công`;
+        btnElement.style.backgroundColor = 'var(--neon-green)';
+        btnElement.style.color = '#000';
+        
+        // Mở tab mới
+        window.open(sheetUrl, '_blank');
+
+        setTimeout(() => {
+            btnElement.innerHTML = originalText;
+            btnElement.style.backgroundColor = '';
+            btnElement.style.color = '';
+            btnElement.disabled = false;
+        }, 3000);
+
+    } catch (error) {
+        console.error("Lỗi Google Sheets:", error);
+        showPopup(error.message);
+        btnElement.innerHTML = `❌ Lỗi`;
+        setTimeout(() => {
+            btnElement.innerHTML = originalText;
+            btnElement.disabled = false;
+        }, 3000);
+    }
+}
+
+if (btnPushGsheet) {
+    btnPushGsheet.addEventListener('click', () => executePushToGoogleSheets(btnPushGsheet));
+}
+
+const btnResultPushGsheet = document.getElementById('btn-result-push-gsheet');
+if (btnResultPushGsheet) {
+    btnResultPushGsheet.addEventListener('click', () => executePushToGoogleSheets(btnResultPushGsheet));
+}
+
+
