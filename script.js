@@ -1215,23 +1215,41 @@ if (btnHeaderGoogleLogin) {
 }
 
 const btnGoogleLogout = document.getElementById('btn-google-logout');
-if (btnGoogleLogout) {
+const googleLogoutConfirmModal = document.getElementById('google-logout-confirm-modal');
+const btnConfirmGoogleLogout = document.getElementById('btn-confirm-google-logout');
+const btnCancelGoogleLogout = document.getElementById('btn-cancel-google-logout');
+
+if (btnGoogleLogout && googleLogoutConfirmModal) {
     btnGoogleLogout.addEventListener('click', () => {
-        googleAccessToken = null;
-        localStorage.removeItem('googleAccessToken');
-        localStorage.removeItem('googleUserInfo');
-        
-        const googleLoggedOut = document.getElementById('google-logged-out');
-        const googleLoggedIn = document.getElementById('google-logged-in');
-        if (googleLoggedOut) googleLoggedOut.classList.remove('hidden');
-        if (googleLoggedIn) googleLoggedIn.classList.add('hidden');
-        
-        if(btnLoginGoogle) btnLoginGoogle.classList.remove('hidden');
-        if(btnPushGsheet) btnPushGsheet.classList.add('hidden');
-        if(googleAuthMsg) {
-            googleAuthMsg.classList.remove('hidden');
-        }
+        googleLogoutConfirmModal.classList.remove('hidden');
     });
+
+    if (btnCancelGoogleLogout) {
+        btnCancelGoogleLogout.addEventListener('click', () => {
+            googleLogoutConfirmModal.classList.add('hidden');
+        });
+    }
+
+    if (btnConfirmGoogleLogout) {
+        btnConfirmGoogleLogout.addEventListener('click', () => {
+            googleAccessToken = null;
+            localStorage.removeItem('googleAccessToken');
+            localStorage.removeItem('googleUserInfo');
+            
+            const googleLoggedOut = document.getElementById('google-logged-out');
+            const googleLoggedIn = document.getElementById('google-logged-in');
+            if (googleLoggedOut) googleLoggedOut.classList.remove('hidden');
+            if (googleLoggedIn) googleLoggedIn.classList.add('hidden');
+            
+            if(btnLoginGoogle) btnLoginGoogle.classList.remove('hidden');
+            if(btnPushGsheet) btnPushGsheet.classList.add('hidden');
+            if(googleAuthMsg) {
+                googleAuthMsg.classList.remove('hidden');
+            }
+            
+            googleLogoutConfirmModal.classList.add('hidden');
+        });
+    }
 }
 
 async function executePushToGoogleSheets(btnElement) {
