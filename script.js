@@ -383,7 +383,29 @@ if (btnLogout) {
     }
 }
 
+// Success Modal Logic
+const successModal = document.getElementById('success-modal');
+const successLinksTextarea = document.getElementById('success-links-textarea');
+const btnCopySuccessLinks = document.getElementById('btn-copy-success-links');
+const closeSuccessModal = document.getElementById('close-success-modal');
 
+if (closeSuccessModal) {
+    closeSuccessModal.addEventListener('click', () => {
+        successModal.classList.add('hidden');
+    });
+}
+
+if (btnCopySuccessLinks) {
+    btnCopySuccessLinks.addEventListener('click', () => {
+        successLinksTextarea.select();
+        document.execCommand("copy");
+        const originalText = btnCopySuccessLinks.innerHTML;
+        btnCopySuccessLinks.innerHTML = '✅ Đã Copy!';
+        setTimeout(() => {
+            btnCopySuccessLinks.innerHTML = originalText;
+        }, 2000);
+    });
+}
 
 // ==========================================================================
 // App Logic
@@ -988,6 +1010,16 @@ async function startUploadProcess(username, pat, prefix, isPrivate) {
                 console.error(`Error for file ${fileNameFull}:`, fileError);
                 updateFileProgress(i, 100, '❌ Lỗi!');
                 setFileStatus(i, 'error', fileError.message);
+            }
+        }
+
+        // Show success modal if there are links
+        if (resultLinks.value.trim() !== "") {
+            if (successLinksTextarea) {
+                successLinksTextarea.value = resultLinks.value;
+            }
+            if (successModal) {
+                successModal.classList.remove('hidden');
             }
         }
 
